@@ -29,6 +29,33 @@
 
 // CPU module - contains low level hardware initialization routines
 #include "Cpu.h"
+#include "packet.h"
+#define PACKET_SPECIAL 0x04;
+#define PACKET_VERSION 0x09;
+
+//UART2 on
+SIM_SCGC4 |= SIM_SCGC4_UART2_MASK;
+//PORTE on
+SIM_SCGC5 |= SIM_SCGC5_PORTE_MASK;
+//Set portE bit 16 to be Alt 3 (UART2_TX function)
+PORTE_PCR16 = PORT_PCR_MUX(3);
+
+void HandlePacket()
+{
+  bool success;
+  switch (Packet_Command)
+  {
+    case PACKET_SPECIAL:
+      success = HandleSpecialPacket();
+      //do something in response to command 4
+      break;
+    case PACKET_VERSION:
+      success = HandleVersionPacket();
+      //do something in response to command 9
+      break;
+  }
+  //TODO acknowledgment of packets
+}
 
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
 int main(void)
@@ -41,8 +68,14 @@ int main(void)
   /*** End of Processor Expert internal initialization.                    ***/
 
   /* Write your code here */
+  TowerInit();
   for (;;)
   {
+      UART_Poll();
+      if (Packet_Get())
+	{
+	  HandlePacket();
+	}
   }
 
   /*** Don't write any code pass this line, or it will be deleted during code generation. ***/
