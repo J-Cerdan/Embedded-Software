@@ -31,16 +31,11 @@
 #include "Cpu.h"
 #include "packet.h"
 #include "FIFO.h"
+#include "UART.h"
 /*#define PACKET_SPECIAL 0x04;
 #define PACKET_VERSION 0x09;*/
 
-/*UART2 on
-SIM_SCGC4 |= SIM_SCGC4_UART2_MASK;
-//PORTE on
-SIM_SCGC5 |= SIM_SCGC5_PORTE_MASK;
-//Set portE bit 16 to be Alt 3 (UART2_TX function)
-PORTE_PCR16 = PORT_PCR_MUX(3);
-*/
+
 /*void HandlePacket()
 {
   bool success;
@@ -63,7 +58,6 @@ int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
   /* Write your local variable definition here */
-
 
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
