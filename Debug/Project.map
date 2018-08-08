@@ -14,6 +14,8 @@ c:/freescale/kds_3.0.0/toolchain/bin/../lib/gcc/arm-none-eabi/4.8.4/../../../../
 Allocating common symbols
 Common symbol       size              file
 
+TxFIFO              0x106             ./Sources/UART.o
+RxFIFO              0x106             ./Sources/UART.o
 SR_reg              0x1               ./Generated_Code/Cpu.o
 
 Discarded input sections
@@ -62,35 +64,40 @@ Discarded input sections
  .group         0x00000000        0x8 ./Sources/UART.o
  .group         0x00000000        0x8 ./Sources/UART.o
  .group         0x00000000        0x8 ./Sources/UART.o
+ .group         0x00000000        0x8 ./Sources/UART.o
+ .group         0x00000000        0x8 ./Sources/UART.o
  .text          0x00000000        0x0 ./Sources/UART.o
  .data          0x00000000        0x0 ./Sources/UART.o
  .bss           0x00000000        0x0 ./Sources/UART.o
  .text.UART_Init
-                0x00000000       0x94 ./Sources/UART.o
+                0x00000000      0x118 ./Sources/UART.o
  .text.UART_InChar
-                0x00000000       0x14 ./Sources/UART.o
+                0x00000000       0x20 ./Sources/UART.o
  .text.UART_OutChar
-                0x00000000       0x18 ./Sources/UART.o
+                0x00000000       0x24 ./Sources/UART.o
  .text.UART_Poll
-                0x00000000        0xc ./Sources/UART.o
- .debug_info    0x00000000      0x723 ./Sources/UART.o
- .debug_abbrev  0x00000000      0x148 ./Sources/UART.o
+                0x00000000       0x48 ./Sources/UART.o
+ .debug_info    0x00000000      0x7a6 ./Sources/UART.o
+ .debug_abbrev  0x00000000      0x193 ./Sources/UART.o
  .debug_aranges
                 0x00000000       0x38 ./Sources/UART.o
  .debug_ranges  0x00000000       0x28 ./Sources/UART.o
- .debug_macro   0x00000000       0x6e ./Sources/UART.o
+ .debug_macro   0x00000000       0x7a ./Sources/UART.o
  .debug_macro   0x00000000      0x850 ./Sources/UART.o
  .debug_macro   0x00000000       0x16 ./Sources/UART.o
  .debug_macro   0x00000000       0x44 ./Sources/UART.o
  .debug_macro   0x00000000      0x209 ./Sources/UART.o
  .debug_macro   0x00000000       0x22 ./Sources/UART.o
  .debug_macro   0x00000000    0x174c1 ./Sources/UART.o
- .debug_line    0x00000000      0x207 ./Sources/UART.o
- .debug_str     0x00000000    0x82f89 ./Sources/UART.o
+ .debug_macro   0x00000000     0x1800 ./Sources/UART.o
+ .debug_macro   0x00000000       0x10 ./Sources/UART.o
+ .debug_line    0x00000000      0x25b ./Sources/UART.o
+ .debug_str     0x00000000    0x8a054 ./Sources/UART.o
  .comment       0x00000000       0x71 ./Sources/UART.o
  .ARM.attributes
                 0x00000000       0x39 ./Sources/UART.o
- .debug_frame   0x00000000       0x7c ./Sources/UART.o
+ .debug_frame   0x00000000       0x8c ./Sources/UART.o
+ COMMON         0x00000000      0x20e ./Sources/UART.o
  .group         0x00000000        0x8 ./Sources/main.o
  .group         0x00000000        0x8 ./Sources/main.o
  .group         0x00000000        0x8 ./Sources/main.o
@@ -111,6 +118,7 @@ Discarded input sections
  .debug_macro   0x00000000      0x209 ./Sources/main.o
  .debug_macro   0x00000000    0x174c1 ./Sources/main.o
  .debug_macro   0x00000000       0x22 ./Sources/main.o
+ .debug_macro   0x00000000       0x10 ./Sources/main.o
  .group         0x00000000        0x8 ./Project_Settings/Startup_Code/startup.o
  .group         0x00000000        0x8 ./Project_Settings/Startup_Code/startup.o
  .group         0x00000000        0x8 ./Project_Settings/Startup_Code/startup.o
@@ -522,34 +530,33 @@ OUTPUT(Project.elf elf32-littlearm)
  .debug_ranges  0x00000010       0x40 ./Project_Settings/Startup_Code/startup.o
  .debug_ranges  0x00000050       0x28 ./Generated_Code/Cpu.o
 
-.debug_macro    0x00000000    0x19cbf
- .debug_macro   0x00000000       0xb5 ./Sources/main.o
- .debug_macro   0x000000b5     0x17fa ./Sources/main.o
- .debug_macro   0x000018af      0x14e ./Sources/main.o
- .debug_macro   0x000019fd       0x64 ./Sources/main.o
- .debug_macro   0x00001a61       0x8e ./Sources/main.o
- .debug_macro   0x00001aef       0x10 ./Sources/main.o
- .debug_macro   0x00001aff      0x121 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00001c20       0x58 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00001c78       0x35 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00001cad       0xa3 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00001d50      0x166 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00001eb6       0x4a ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00001f00       0x52 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00001f52       0x16 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00001f68       0x43 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00001fab      0x180 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x0000212b      0x2a6 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x000023d1       0x10 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x000023e1       0x35 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00002416       0x16 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x0000242c       0x22 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x0000244e       0x16 ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00002464      0x20f ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00002673    0x174af ./Project_Settings/Startup_Code/startup.o
- .debug_macro   0x00019b22       0x84 ./Generated_Code/Cpu.o
- .debug_macro   0x00019ba6       0x94 ./Generated_Code/Cpu.o
- .debug_macro   0x00019c3a       0x85 ./Generated_Code/Vectors.o
+.debug_macro    0x00000000    0x19cb7
+ .debug_macro   0x00000000       0xbd ./Sources/main.o
+ .debug_macro   0x000000bd     0x17fa ./Sources/main.o
+ .debug_macro   0x000018b7      0x14e ./Sources/main.o
+ .debug_macro   0x00001a05       0x64 ./Sources/main.o
+ .debug_macro   0x00001a69       0x8e ./Sources/main.o
+ .debug_macro   0x00001af7      0x121 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00001c18       0x58 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00001c70       0x35 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00001ca5       0xa3 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00001d48      0x166 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00001eae       0x4a ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00001ef8       0x52 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00001f4a       0x16 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00001f60       0x43 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00001fa3      0x180 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00002123      0x2a6 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x000023c9       0x10 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x000023d9       0x35 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x0000240e       0x16 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00002424       0x22 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00002446       0x16 ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x0000245c      0x20f ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x0000266b    0x174af ./Project_Settings/Startup_Code/startup.o
+ .debug_macro   0x00019b1a       0x84 ./Generated_Code/Cpu.o
+ .debug_macro   0x00019b9e       0x94 ./Generated_Code/Cpu.o
+ .debug_macro   0x00019c32       0x85 ./Generated_Code/Vectors.o
 
 .debug_line     0x00000000      0xa4e
  .debug_line    0x00000000      0x255 ./Sources/main.o

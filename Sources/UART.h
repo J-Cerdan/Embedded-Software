@@ -11,8 +11,12 @@
 #ifndef UART_H
 #define UART_H
 
+
 // new types
 #include "types.h"
+#include "MK70F12.h"
+#include "PE_Types.h"
+#include "FIFO.h"
 
 /*! @brief Sets up the UART interface before first use.
  *
