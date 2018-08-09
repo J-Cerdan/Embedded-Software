@@ -44,7 +44,7 @@ static const uint8_t MajorTowerVersion = 0x01;
 static const uint8_t MinorTowerVersion = 0x00;
 
 
-static void HandleNumberPacket(void)
+static bool HandleNumberPacket(void)
 {
   if (Packet_Parameter1 == 0x02)
     {
@@ -52,43 +52,58 @@ static void HandleNumberPacket(void)
       TowerNumber.s.Hi = Packet_Parameter3;
     }
 
-  Packet_Put(0x0B, 0x01, TowerNumber.s.Lo, TowerNumber.s.Hi);
+  return Packet_Put(0x0B, 0x01, TowerNumber.s.Lo, TowerNumber.s.Hi);
 }
 
-static void HandleVersionPacket(void)
+static bool HandleVersionPacket(void)
 {
-  Packet_Put(0x09, 0x76, MajorTowerVersion, MinorTowerVersion);
+  return Packet_Put(0x09, 0x76, MajorTowerVersion, MinorTowerVersion);
 }
 
-static void HandleSpecialPacket(void)
+static bool HandleSpecialPacket(void)
 {
-  Packet_Put(0x04, 0x00, 0x00, 0x00);
-
-  HandleVersionPacket();
-  HandleNumberPacket();
+  return Packet_Put(0x04, 0x00, 0x00, 0x00) &
+	 HandleVersionPacket() &
+	 HandleNumberPacket();
 }
 
 static void HandlePacket()
 {
+  uint8_t requiresAck;
+  uint8_t success;
+
+  if (Packet_Command & PACKET_ACK_MASK)
+    {
+      Packet_Command &= 0x7f;
+      requiresAck = TRUE;
+    }
+
 
   switch (Packet_Command)
   {
     case (PACKET_SPECIAL):
-      HandleSpecialPacket();
+     success = HandleSpecialPacket();
 
       break;
     case (PACKET_VERSION):
-	HandleVersionPacket();
+	success = HandleVersionPacket();
 
       break;
 
     case (PACKET_NUMBER):
-	HandleNumberPacket();
+	success = HandleNumberPacket();
 
 
    break;
   }
-  //TODO acknowledgment of packets
+   if (requiresAck)
+     {
+       if (success)
+	 Packet_Command |= PACKET_ACK_MASK;
+
+       Packet_Put(Packet_Command, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3);
+     }
+
 }
 
 
