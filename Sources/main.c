@@ -30,28 +30,41 @@
 // CPU module - contains low level hardware initialization routines
 #include "Cpu.h"
 #include "packet.h"
-#include "FIFO.h"
-#include "UART.h"
-/*#define PACKET_SPECIAL 0x04;
-#define PACKET_VERSION 0x09;*/
+
+#define PACKET_SPECIAL 0x04
+#define PACKET_VERSION 0x09
+#define PACKET_NUMBER 0x0B
+
+//global private variable to store the baudRate
+static uint32_t baudRate = 38400;
+
+
 
 
 /*void HandlePacket()
 {
-  bool success;
+
   switch (Packet_Command)
   {
-    case PACKET_SPECIAL:
+    case (PACKET_SPECIAL):
       success = HandleSpecialPacket();
-      //do something in response to command 4
+
       break;
-    case PACKET_VERSION:
+    case (PACKET_VERSION):
       success = HandleVersionPacket();
       //do something in response to command 9
       break;
+
+    case (PACKET_NUMBER):
+	success =
   }
   //TODO acknowledgment of packets
 }*/
+
+bool HadnleSpecialPacket()
+{
+
+}
 
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
 int main(void)
@@ -63,6 +76,7 @@ int main(void)
   PE_low_level_init();
   /*** End of Processor Expert internal initialization.                    ***/
 
+  Packet_Init(CPU_BUS_CLK_HZ ,baudRate);
   /* Write your code here */
   //TowerInit();
   for (;;)
@@ -97,6 +111,7 @@ int main(void)
 **
 ** ###################################################################
 */
+
 
 
 

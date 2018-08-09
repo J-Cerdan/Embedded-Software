@@ -20,7 +20,7 @@ bool FIFO_Init(TFIFO * const fifo)
   fifo->End = 0;
   fifo->Start = 0;
   fifo->NbBytes = 0;
-  return 1;
+  return TRUE;
 }
 
 /*! @brief Put one character into the FIFO.
@@ -33,7 +33,7 @@ bool FIFO_Init(TFIFO * const fifo)
 bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 {
   if (fifo->NbBytes == FIFO_SIZE)
-    return 0;
+    return FALSE;
 
   fifo->Buffer[fifo->End] = data;
   fifo->End++;
@@ -41,7 +41,7 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
     fifo->End = 0;
   fifo->NbBytes++;
 
-  return 1;
+  return TRUE;
 }
 
 /*! @brief Get one character from the FIFO.
@@ -54,7 +54,7 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
 {
   if (fifo->NbBytes == 0)
-    return 0;
+    return FALSE;
 
   *dataPtr = fifo->Buffer[fifo->Start];
   fifo->NbBytes--;
@@ -62,7 +62,7 @@ bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
   if (fifo->Start > FIFO_SIZE-1)
     fifo->Start = 0;
 
-  return 1;
+  return TRUE;
 
 }
 

@@ -9,6 +9,7 @@
  */
 
 #include "UART.h"
+#include "FIFO.h"
 
 TFIFO TxFIFO, RxFIFO;
 /*! @brief Sets up the UART interface before first use.
@@ -35,11 +36,11 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
   UART2_C2 &= UART_C2_RE_MASK;
 
   uint16_t SBR;
-  int8_t brfa;
+  uint8_t brfa;
 
   SBR = moduleClk / (16 * baudRate);
 
-  brfa = ((moduleClk *2) / (baudRate)) % 32;
+  brfa = (SBR*2) % 32;
 
   UART2_C4 |= UART_C4_BRFA(brfa);
 
@@ -87,11 +88,14 @@ bool UART_OutChar(const uint8_t data)
  */
 void UART_Poll(void)
 {
-  if (UART2_S1 & UART_S1_RDRF_MASK)
+  //Bug with reading same register twice without acting on it, placing it in local variable to fix
+  uint8_t tempRead = UART2_S1;
+  if (tempRead & UART_S1_RDRF_MASK)
     FIFO_Put(&RxFIFO, UART2_D);
 
-  if (UART2_S1 & UART_S1_TDRE_MASK)
-    FIFO_Get(&TxFIFO, &UART2_D);
+
+  if (tempRead & UART_S1_TDRE_MASK)
+    FIFO_Get(&TxFIFO, (uint8_t *) &UART2_D); // type cast to fix volatile error
 }
 
 
