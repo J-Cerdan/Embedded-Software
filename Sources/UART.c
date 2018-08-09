@@ -25,9 +25,9 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
   //PORTE on
   SIM_SCGC5 |= SIM_SCGC5_PORTE_MASK;
   //Set portE bit 16 to be Alt 3 (UART2_TX function)
-  PORTE_PCR16 = PORT_PCR_MUX(3);
+  PORTE_PCR16 |= PORT_PCR_MUX(3);
   //Set portE bit 17 to be Alt 3 (UART2_TX function)
-  PORTE_PCR17 = PORT_PCR_MUX(3);
+  PORTE_PCR17 |= PORT_PCR_MUX(3);
 
   //this enables no parity and 8 bit mode
   UART2_C1 = 0x00;
@@ -44,9 +44,14 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
 
   UART2_C4 |= UART_C4_BRFA(brfa);
 
-  UART2_BDH |= 0x1F & (SBR >>8);
+  UART2_BDH |= UART_BDH_SBR(SBR >>8);
 
   UART2_BDL = (uint8_t) SBR;
+
+  /* Danon Answers
+  UART2_C4 |= UART_C4_BRFA(4);
+  UART2_BDH |= UART_BDH_SBR(0);
+  UART2_BDL = UART_BDL_SBR(34);*/
 
   //Enable transmitter and receiver
   UART2_C2 |= UART_C2_TE_MASK;

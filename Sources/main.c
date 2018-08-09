@@ -30,62 +30,95 @@
 // CPU module - contains low level hardware initialization routines
 #include "Cpu.h"
 #include "packet.h"
+#include "types.h"
+#include "PE_Types.h"
 
 #define PACKET_SPECIAL 0x04
 #define PACKET_VERSION 0x09
 #define PACKET_NUMBER 0x0B
 
 //global private variable to store the baudRate
-static uint32_t baudRate = 38400;
+static const uint32_t BaudRate = 38400;
+static uint16union_t TowerNumber;
+static const uint8_t MajorTowerVersion = 0x01;
+static const uint8_t MinorTowerVersion = 0x00;
 
 
+static void HandleNumberPacket(void)
+{
+  if (Packet_Parameter1 == 0x02)
+    {
+      TowerNumber.s.Lo = Packet_Parameter2;
+      TowerNumber.s.Hi = Packet_Parameter3;
+    }
 
+  Packet_Put(0x0B, 0x01, TowerNumber.s.Lo, TowerNumber.s.Hi);
+}
 
-/*void HandlePacket()
+static void HandleVersionPacket(void)
+{
+  Packet_Put(0x09, 0x76, MajorTowerVersion, MinorTowerVersion);
+}
+
+static void HandleSpecialPacket(void)
+{
+  Packet_Put(0x04, 0x00, 0x00, 0x00);
+
+  HandleVersionPacket();
+  HandleNumberPacket();
+}
+
+static void HandlePacket()
 {
 
   switch (Packet_Command)
   {
     case (PACKET_SPECIAL):
-      success = HandleSpecialPacket();
+      HandleSpecialPacket();
 
       break;
     case (PACKET_VERSION):
-      success = HandleVersionPacket();
-      //do something in response to command 9
+	HandleVersionPacket();
+
       break;
 
     case (PACKET_NUMBER):
-	success =
+	HandleNumberPacket();
+
+
+   break;
   }
   //TODO acknowledgment of packets
-}*/
-
-bool HadnleSpecialPacket()
-{
-
 }
+
+
+
+
+
+
+
 
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
 int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
   /* Write your local variable definition here */
-
+  TowerNumber.l = 6702;
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
   /*** End of Processor Expert internal initialization.                    ***/
 
-  Packet_Init(CPU_BUS_CLK_HZ ,baudRate);
-  /* Write your code here */
-  //TowerInit();
+  Packet_Init(BaudRate, CPU_BUS_CLK_HZ);
+
+  HandleSpecialPacket();
+
   for (;;)
   {
-      /*UART_Poll();
+      UART_Poll();
       if (Packet_Get())
 	{
 	  HandlePacket();
-	}*/
+	}
   }
 
   /*** Don't write any code pass this line, or it will be deleted during code generation. ***/
