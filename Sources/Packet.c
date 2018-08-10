@@ -8,9 +8,11 @@
  *  @date 2018-08-10
  */
 
+//provides useful definitions
 #include "PE_Types.h"
-
+//includes the function prototypes to be implemented here and any public variables or constants
 #include "packet.h"
+//provides useful public functions
 #include "UART.h"
 
 
@@ -20,7 +22,7 @@ uint8_t Packet_Command,     /*!< The packet's command */
         Packet_Parameter3,  /*!< The packet's 3rd parameter */
         Packet_Checksum;    /*!< The packet's checksum */
 
-
+//used to enable acknowledgment bit if required
 const uint8_t PACKET_ACK_MASK = 0x80; // 1000 0000
 
 /*! @brief Initializes the packets by calling the initialization routines of the supporting software modules.
@@ -41,7 +43,7 @@ bool Packet_Init(const uint32_t baudRate, const uint32_t moduleClk)
  */
 bool Packet_Get(void)
 {
-  //Initialisation of state variable for the switch statement
+  //Initialisation of state variable for the switch statement, is static to maintain position of previous state
   static uint8_t state;
 
   //Loop implemented to handle and store packets from data
@@ -90,16 +92,16 @@ bool Packet_Get(void)
     if (!UART_InChar(&Packet_Checksum))
       return FALSE;
 
-      //Check if Checksum is equal to the AND of all preceding packets
+      //Check if Checksum is equal to the XOR of all preceding packets for synchronization
       case 5:
     if(Packet_Command ^ Packet_Parameter1 ^ Packet_Parameter2 ^ Packet_Parameter3 == Packet_Checksum)
         {
-          //Reinitalise state variable
+          //Reinitalise state variable when packets are synced and ready to be processed by the tower
           state = 0;
           return TRUE;
         }
 
-    //Shift all packets one byte
+    //Shifts all packets one byte to read in a new checksum (for packet synchronization
     else
         {
           Packet_Parameter1 = Packet_Parameter2;
@@ -109,7 +111,6 @@ bool Packet_Get(void)
         }
     break;
      }
-
     }
 }
 

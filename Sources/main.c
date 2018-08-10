@@ -27,9 +27,9 @@
 */         
 /* MODULE main */
 
-//types header - contains variable types and definitions useful for pc to tower protocols
+//types header - provides variable types and definitions useful for pc to tower protocols
 #include "types.h"
-//PE_Types header - contains useful definitions
+//PE_Types header - provides useful definitions
 #include "PE_Types.h"
 // CPU module - contains low level hardware initialization routines
 #include "Cpu.h"

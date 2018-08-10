@@ -7,8 +7,10 @@
  *  @author Amir Hussein & Joseph Cerdan
  *  @date 2018-08-10
  */
-
+//includes the function prototypes to be implemented here and any public variables or constants
 #include "FIFO.h"
+//provides useful definitions
+#include "PE_Types.h"
 
 /*! @brief Initialize the FIFO before first use.
  *
@@ -17,7 +19,7 @@
  */
 bool FIFO_Init(TFIFO * const fifo)
 {
-  //Initialisation of END, Start and Number of Bytes FIFO indices
+  //Initialisation of END and Start indices and Number of Bytes of FIFO
   fifo->End = 0;
   fifo->Start = 0;
   fifo->NbBytes = 0;
@@ -35,7 +37,7 @@ bool FIFO_Init(TFIFO * const fifo)
 bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 {
 
-  //Checks if FIFO reaches maximum capacity
+  //Checks if FIFO has reached maximum capacity
   if (fifo->NbBytes == FIFO_SIZE)
     return FALSE;
 
@@ -65,7 +67,7 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
 {
 
-  //Checks if any data is contained within the FIFO
+  //Checks if any data is stored in the FIFO
   if (fifo->NbBytes == 0)
     return FALSE;
 

@@ -9,9 +9,9 @@
  */
 //This header file implements peripheral memory map for MK70F1 processor.
 #include "MK70F12.h"
-//containts use definitions
+//provides use definitions
 #include "PE_Types.h"
-//UART header file
+//includes the function prototypes to be implemented here and any public variables or constants
 #include "UART.h"
 //FIFO header file to access the FIFO functions
 #include "FIFO.h"
