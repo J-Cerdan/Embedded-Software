@@ -97,7 +97,7 @@ void UART_Poll(void)
 {
   //Bug with reading same register twice without acting on it, placing it in local variable to fix
   uint8_t tempRead = UART2_S1;
-  if (tempRead & UART_S1_RDRF_MASK)//true if recieve register full flag is set
+  if (tempRead & UART_S1_RDRF_MASK)//true if receive register full flag is set
     FIFO_Put(&RxFIFO, UART2_D);
 
   if (tempRead & UART_S1_TDRE_MASK)//true if transmit register empty flag is set
