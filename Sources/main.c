@@ -27,15 +27,16 @@
 */         
 /* MODULE main */
 
-
-// CPU module - contains low level hardware initialization routines
-#include "Cpu.h"
-//packet module - contains all the public functions to be used in this module
-#include "packet.h"
 //types header - contains variable types and definitions useful for pc to tower protocols
 #include "types.h"
 //PE_Types header - contains useful definitions
 #include "PE_Types.h"
+// CPU module - contains low level hardware initialization routines
+#include "Cpu.h"
+//packet module - contains all the public functions to be used in this module
+#include "packet.h"
+//packet module - contains all the public functions to be used n this module
+#include "UART.h"
 
 //macros defined for determining which command protocol has been sent
 #define PACKET_SPECIAL 0x04

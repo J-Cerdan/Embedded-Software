@@ -4,8 +4,8 @@
  *
  *  This contains the functions for implementing the "Tower to PC Protocol" 5-byte packets.
  *
- *  @author PMcL
- *  @date 2015-07-23
+ *  @author Amir Hussein & Joseph Cerdan
+ *  @date 2018-08-10
  */
 
 #ifndef PACKET_H

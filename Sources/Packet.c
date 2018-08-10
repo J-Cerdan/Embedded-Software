@@ -2,10 +2,10 @@
  *
  *  @brief Routines to implement packet encoding and decoding for the serial port.
  *
- *  This contains the implementations of the functions for implementing the "Tower to PC Protocol" 5-byte packets.
+ *  This contains the functions for implementing the "Tower to PC Protocol" 5-byte packets.
  *
  *  @author Amir Hussein & Joseph Cerdan
- *  @date 2018-08-09
+ *  @date 2018-08-10
  */
 
 #include "PE_Types.h"
@@ -14,11 +14,11 @@
 #include "UART.h"
 
 
-uint8_t 	Packet_Command,		/*!< The packet's command */
-		Packet_Parameter1, 	/*!< The packet's 1st parameter */
-		Packet_Parameter2, 	/*!< The packet's 2nd parameter */
-		Packet_Parameter3,	/*!< The packet's 3rd parameter */
-		Packet_Checksum;	/*!< The packet's checksum */
+uint8_t Packet_Command,     /*!< The packet's command */
+        Packet_Parameter1,  /*!< The packet's 1st parameter */
+        Packet_Parameter2,  /*!< The packet's 2nd parameter */
+        Packet_Parameter3,  /*!< The packet's 3rd parameter */
+        Packet_Checksum;    /*!< The packet's checksum */
 
 
 const uint8_t PACKET_ACK_MASK = 0x80; // 1000 0000
@@ -31,15 +31,9 @@ const uint8_t PACKET_ACK_MASK = 0x80; // 1000 0000
  */
 bool Packet_Init(const uint32_t baudRate, const uint32_t moduleClk)
 {
-  //initialising UART
+  //Calls and initiates UART_Init in order to ensure that packets are initialised
   return UART_Init(baudRate, moduleClk);
 }
-
-
-
-
-
-
 
 /*! @brief Attempts to get a packet from the received data.
  *
@@ -47,62 +41,73 @@ bool Packet_Init(const uint32_t baudRate, const uint32_t moduleClk)
  */
 bool Packet_Get(void)
 {
+  //Initialisation of state variable for the switch statement
   static uint8_t state;
 
+  //Loop implemented to handle and store packets from data
   for (;;)
   {
     switch(state)
     {
+      //Store into command packet and check if storage has been completed
       case 0:
-	if (UART_InChar(&Packet_Command))
-	  state++;
+    if (UART_InChar(&Packet_Command))
+      state++;
 
-         else
-	    return FALSE;
-	  break;
+        else
+      return FALSE;
+    break;
 
-       case 1:
-	 if (UART_InChar(&Packet_Parameter1))
-	     state++;
+      //Store into first parameter packet and check if storage has been completed
+      case 1:
+    if (UART_InChar(&Packet_Parameter1))
+        state++;
 
-	   else
-	     return FALSE;
-	   break;
+    else
+      return FALSE;
+    break;
 
-       case 2:
-	 if (UART_InChar(&Packet_Parameter2))
-	     state++;
+      //Store into second parameter packet and check if storage has been completed
+      case 2:
+    if (UART_InChar(&Packet_Parameter2))
+        state++;
 
-	   else
-	     return FALSE;
-	   break;
+    else
+       return FALSE;
+    break;
 
-       case 3:
-	 if (UART_InChar(&Packet_Parameter3))
-	     state++;
-	   else
-	     return FALSE;
-	   break;
+      //Store into third parameter packet and check if storage has been completed
+      case 3:
+    if (UART_InChar(&Packet_Parameter3))
+       state++;
 
-       case 4:
-	 if (!UART_InChar(&Packet_Checksum))
-	   return FALSE;
+    else
+       return FALSE;
+    break;
 
-       case 5:
-	   if(Packet_Command ^ Packet_Parameter1 ^ Packet_Parameter2 ^ Packet_Parameter3 == Packet_Checksum)
-	     {
-	       state = 0;
-	       return TRUE;
-	     }
+      //Store into checksum packet and check if storage has been completed
+      case 4:
+    if (!UART_InChar(&Packet_Checksum))
+      return FALSE;
 
-	   else
-	     {
-	       Packet_Parameter1 = Packet_Parameter2;
-	       Packet_Parameter2 = Packet_Parameter3;
-	       Packet_Parameter3 = Packet_Checksum;
-	       state = 4;
-	     }
-	     break;
+      //Check if Checksum is equal to the AND of all preceding packets
+      case 5:
+    if(Packet_Command ^ Packet_Parameter1 ^ Packet_Parameter2 ^ Packet_Parameter3 == Packet_Checksum)
+        {
+          //Reinitalise state variable
+          state = 0;
+          return TRUE;
+        }
+
+    //Shift all packets one byte
+    else
+        {
+          Packet_Parameter1 = Packet_Parameter2;
+          Packet_Parameter2 = Packet_Parameter3;
+          Packet_Parameter3 = Packet_Checksum;
+          state = 4;
+        }
+    break;
      }
 
     }
@@ -121,11 +126,12 @@ bool Packet_Get(void)
 bool Packet_Put(const uint8_t command, const uint8_t parameter1, const uint8_t parameter2, const uint8_t parameter3)
 {
 
+  //Obtains packets and assigns to parameters of FIFO buffer, returns 0 if any execution fails
   return UART_OutChar(command) &&
-	 UART_OutChar(parameter1) &&
-	 UART_OutChar(parameter2) &&
-	 UART_OutChar(parameter3) &&
-	 UART_OutChar(command ^ parameter1 ^ parameter2 ^ parameter3);
+     UART_OutChar(parameter1) &&
+     UART_OutChar(parameter2) &&
+     UART_OutChar(parameter3) &&
+     UART_OutChar(command ^ parameter1 ^ parameter2 ^ parameter3); //Calculates and stores checksum
 
 
 }
