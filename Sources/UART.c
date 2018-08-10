@@ -1,17 +1,23 @@
 /*! @file
  *
- *  @brief Implementation  I/O routines for UART communications on the TWR-K70F120M.
+ *  @brief I/O routines for UART communications on the TWR-K70F120M.
  *
- *  This contains the implementation of the functions for operating the UART (serial port).
+ *  This contains the functions for operating the UART (serial port).
  *
  *  @author Amir Hussein & Joseph Cerdan
- *  @date 2018-08-07
+ *  @date 2018-08-10
  */
-
+//This header file implements peripheral memory map for MK70F1 processor.
+#include "MK70F12.h"
+//containts use definitions
+#include "PE_Types.h"
+//UART header file
 #include "UART.h"
+//FIFO header file to access the FIFO functions
 #include "FIFO.h"
 
-TFIFO TxFIFO, RxFIFO;
+//private transmit and receive FIFO's
+static TFIFO TxFIFO, RxFIFO;
 /*! @brief Sets up the UART interface before first use.
  *
  *  @param baudRate The desired baud rate in bits/sec.
@@ -29,7 +35,7 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
   //Set portE bit 17 to be Alt 3 (UART2_TX function)
   PORTE_PCR17 |= PORT_PCR_MUX(3);
 
-  //this enables no parity and 8 bit mode
+  //this enables no parity and 8 bit mode (8N1)
   UART2_C1 = 0x00;
   // disable transmitter and receiver while we adjust and assign values
   UART2_C2 &= UART_C2_TE_MASK;
@@ -38,30 +44,26 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
   uint16_t SBR;
   uint8_t brfa;
 
+  //the sbr is calculated here and due to integer devision the BRFA is not included in the value
   SBR = moduleClk / (16 * baudRate);
 
-  brfa = (SBR*2) % 32;
+  //The BRFD is multiplied here to shift the decimal to the right so we don't loose information about the BFRA, then use modulus to get the remainder (brfa)
+  brfa = (moduleClk*2 / baudRate) % 32;
 
+  //assigning the brfa value in C4
   UART2_C4 |= UART_C4_BRFA(brfa);
-
+  //storing the 5 most significant bits of the SBR in BDH
   UART2_BDH |= UART_BDH_SBR(SBR >>8);
-
+  //storing the 8 least significant bits of the SBR in BDL
   UART2_BDL = (uint8_t) SBR;
-
-  /* Danon Answers
-  UART2_C4 |= UART_C4_BRFA(4);
-  UART2_BDH |= UART_BDH_SBR(0);
-  UART2_BDL = UART_BDL_SBR(34);*/
 
   //Enable transmitter and receiver
   UART2_C2 |= UART_C2_TE_MASK;
   UART2_C2 |= UART_C2_RE_MASK;
 
-  //initialise transmit and receive FIFO
-  FIFO_Init(&TxFIFO);
-  FIFO_Init(&RxFIFO);
-
-  return TRUE;
+  //initialize transmit and receive FIFO and returns 1 if the succeed, marking the success of initializing the UART
+  return FIFO_Init(&TxFIFO) &&
+	 FIFO_Init(&RxFIFO);
 }
 
 /*! @brief Get a character from the receive FIFO if it is not empty.
@@ -95,11 +97,10 @@ void UART_Poll(void)
 {
   //Bug with reading same register twice without acting on it, placing it in local variable to fix
   uint8_t tempRead = UART2_S1;
-  if (tempRead & UART_S1_RDRF_MASK)
+  if (tempRead & UART_S1_RDRF_MASK)//true if recieve register full flag is set
     FIFO_Put(&RxFIFO, UART2_D);
 
-
-  if (tempRead & UART_S1_TDRE_MASK)
+  if (tempRead & UART_S1_TDRE_MASK)//true if transmit register empty flag is set
     FIFO_Get(&TxFIFO, (uint8_t *) &UART2_D); // type cast to fix volatile error
 }
 

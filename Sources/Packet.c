@@ -8,9 +8,11 @@
  *  @date 2018-08-09
  */
 
+#include "PE_Types.h"
 
 #include "packet.h"
 #include "UART.h"
+
 
 uint8_t 	Packet_Command,		/*!< The packet's command */
 		Packet_Parameter1, 	/*!< The packet's 1st parameter */

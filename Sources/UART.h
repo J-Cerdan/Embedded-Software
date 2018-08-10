@@ -4,19 +4,15 @@
  *
  *  This contains the functions for operating the UART (serial port).
  *
- *  @author PMcL
+ *  @author Amir Hussien & Joseph Cerdan
  *  @date 2015-07-23
  */
 
 #ifndef UART_H
 #define UART_H
 
-
 // new types
 #include "types.h"
-#include "MK70F12.h"
-#include "PE_Types.h"
-
 /*! @brief Sets up the UART interface before first use.
  *
  *  @param baudRate The desired baud rate in bits/sec.
