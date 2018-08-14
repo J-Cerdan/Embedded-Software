@@ -7,6 +7,10 @@
  *  @author Amir Hussein & Joseph Cerdan
  *  @date 2018-08-10
  */
+/*!
+**  @addtogroup UART_module UART module documentation
+**  @{
+*/
 //This header file implements peripheral memory map for MK70F1 processor.
 #include "MK70F12.h"
 //provides use definitions
@@ -18,12 +22,8 @@
 
 //private transmit and receive FIFO's
 static TFIFO TxFIFO, RxFIFO;
-/*! @brief Sets up the UART interface before first use.
- *
- *  @param baudRate The desired baud rate in bits/sec.
- *  @param moduleClk The module clock rate in Hz.
- *  @return bool - TRUE if the UART was successfully initialized.
- */
+
+
 bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
 {
   //UART2 on
@@ -47,7 +47,8 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
   //the sbr is calculated here and due to integer devision the BRFA is not included in the value
   SBR = moduleClk / (16 * baudRate);
 
-  //The BRFD is multiplied here to shift the decimal to the right so we don't loose information about the BFRA, then use modulus to get the remainder (brfa)
+  //The BRFD is multiplied here to shift the decimal to the right so we don't
+  // loose information about the BFRA, then use modulus to get the remainder (brfa)
   brfa = (moduleClk*2 / baudRate) % 32;
 
   //assigning the brfa value in C4
@@ -66,33 +67,19 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
 	 FIFO_Init(&RxFIFO);
 }
 
-/*! @brief Get a character from the receive FIFO if it is not empty.
- *
- *  @param dataPtr A pointer to memory to store the retrieved byte.
- *  @return bool - TRUE if the receive FIFO returned a character.
- *  @note Assumes that UART_Init has been called.
- */
+
 bool UART_InChar(uint8_t* const dataPtr)
 {
   return FIFO_Get(&RxFIFO, dataPtr);
 }
 
-/*! @brief Put a byte in the transmit FIFO if it is not full.
- *
- *  @param data The byte to be placed in the transmit FIFO.
- *  @return bool - TRUE if the data was placed in the transmit FIFO.
- *  @note Assumes that UART_Init has been called.
- */
+
 bool UART_OutChar(const uint8_t data)
 {
   return FIFO_Put(&TxFIFO, data);
 }
 
-/*! @brief Poll the UART status register to try and receive and/or transmit one character.
- *
- *  @return void
- *  @note Assumes that UART_Init has been called.
- */
+
 void UART_Poll(void)
 {
   //Bug with reading same register twice without acting on it, placing it in local variable to fix
@@ -104,7 +91,9 @@ void UART_Poll(void)
     FIFO_Get(&TxFIFO, (uint8_t *) &UART2_D); // type cast to fix volatile error
 }
 
-
+/*!
+** @}
+*/
 
 
 

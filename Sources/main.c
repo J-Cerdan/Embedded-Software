@@ -53,7 +53,7 @@ static const uint8_t MinorTowerVersion = 0x00;
 
 /*! @brief Handles the "Tower number" request packet
  *
- *  @param None.
+ *  @param No param required.
  *  @return bool - TRUE if the packet was placed in the FIFO successfully
  */
 static bool HandleNumberPacket(void)
@@ -141,7 +141,6 @@ static void HandlePacket(void)
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
 /*! @brief main
  *
- *  @param None.
  *  @return int.
  */
 int main(void)

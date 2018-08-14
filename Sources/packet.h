@@ -7,7 +7,10 @@
  *  @author Amir Hussein & Joseph Cerdan
  *  @date 2018-08-10
  */
-
+/*!
+**  @addtogroup packet_module packet module documentation
+**  @{
+*/
 #ifndef PACKET_H
 #define PACKET_H
 
@@ -21,8 +24,8 @@ extern uint8_t 	Packet_Command,		/*!< The packet's command */
 		Packet_Parameter3,	/*!< The packet's 3rd parameter */
 		Packet_Checksum;	/*!< The packet's checksum */
 
-// Acknowledgement bit mask
-extern const uint8_t PACKET_ACK_MASK;
+
+extern const uint8_t PACKET_ACK_MASK; /*!< Acknowledgement bit mask */
 
 /*! @brief Initializes the packets by calling the initialization routines of the supporting software modules.
  *
@@ -45,3 +48,7 @@ bool Packet_Get(void);
 bool Packet_Put(const uint8_t command, const uint8_t parameter1, const uint8_t parameter2, const uint8_t parameter3);
 
 #endif
+
+/*!
+** @}
+*/

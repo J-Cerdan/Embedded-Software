@@ -7,7 +7,10 @@
  *  @author Amir Hussein & Joseph Cerdan
  *  @date 2018-08-10
  */
-
+/*!
+**  @addtogroup packet_module packet module documentation
+**  @{
+*/
 //provides useful definitions
 #include "PE_Types.h"
 //includes the function prototypes to be implemented here and any public variables or constants
@@ -22,25 +25,16 @@ uint8_t Packet_Command,     /*!< The packet's command */
         Packet_Parameter3,  /*!< The packet's 3rd parameter */
         Packet_Checksum;    /*!< The packet's checksum */
 
-//used to enable acknowledgment bit if required
 const uint8_t PACKET_ACK_MASK = 0x80; // 1000 0000
 
-/*! @brief Initializes the packets by calling the initialization routines of the supporting software modules.
- *
- *  @param baudRate The desired baud rate in bits/sec.
- *  @param moduleClk The module clock rate in Hz.
- *  @return bool - TRUE if the packet module was successfully initialized.
- */
+
 bool Packet_Init(const uint32_t baudRate, const uint32_t moduleClk)
 {
   //Calls and initiates UART_Init in order to ensure that packets are initialised
   return UART_Init(baudRate, moduleClk);
 }
 
-/*! @brief Attempts to get a packet from the received data.
- *
- *  @return bool - TRUE if a valid packet was received.
- */
+
 bool Packet_Get(void)
 {
   //Initialisation of state variable for the switch statement, is static to maintain position of previous state
@@ -115,15 +109,6 @@ bool Packet_Get(void)
 }
 
 
-
-
-
-
-
-/*! @brief Builds a packet and places it in the transmit FIFO buffer.
- *
- *  @return bool - TRUE if a valid packet was sent.
- */
 bool Packet_Put(const uint8_t command, const uint8_t parameter1, const uint8_t parameter2, const uint8_t parameter3)
 {
 
@@ -137,3 +122,6 @@ bool Packet_Put(const uint8_t command, const uint8_t parameter1, const uint8_t p
 
 }
 
+/*!
+** @}
+*/
