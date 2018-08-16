@@ -4,10 +4,13 @@
  *
  *  This contains the functions for implementing the "Tower to PC Protocol" 5-byte packets.
  *
- *  @author PMcL
- *  @date 2015-07-23
+ *  @author Amir Hussein & Joseph Cerdan
+ *  @date 2018-08-10
  */
-
+/*!
+**  @addtogroup packet_module packet module documentation
+**  @{
+*/
 #ifndef PACKET_H
 #define PACKET_H
 
@@ -17,6 +20,7 @@
 // Packet structure
 #define PACKET_NB_BYTES 5
 
+<<<<<<< Sources/packet.h
 #pragma pack(push)
 #pragma pack(1)
 
@@ -63,6 +67,10 @@ extern TPacket Packet;
 
 // Acknowledgment bit mask
 extern const uint8_t PACKET_ACK_MASK;
+=======
+
+extern const uint8_t PACKET_ACK_MASK; /*!< Acknowledgement bit mask */
+>>>>>>> Sources/packet.h
 
 /*! @brief Initializes the packets by calling the initialization routines of the supporting software modules.
  *
@@ -85,3 +93,7 @@ bool Packet_Get(void);
 bool Packet_Put(const uint8_t command, const uint8_t parameter1, const uint8_t parameter2, const uint8_t parameter3);
 
 #endif
+
+/*!
+** @}
+*/

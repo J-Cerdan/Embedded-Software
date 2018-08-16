@@ -4,10 +4,13 @@
  *
  *  This contains the structure and "methods" for accessing a byte-wide FIFO.
  *
- *  @author PMcL
- *  @date 2015-07-23
+ *  @author Amir Hussein & Joseph Cerdan
+ *  @date 2018-08-10
  */
-
+/*!
+**  @addtogroup FIFO_module FIFO module documentation
+**  @{
+*/
 #ifndef FIFO_H
 #define FIFO_H
 
@@ -15,7 +18,7 @@
 #include "types.h"
 
 // Number of bytes in a FIFO
-#define FIFO_SIZE 256
+#define FIFO_SIZE 256 /*!< max FIFO size*/
 
 /*!
  * @struct TFIFO
@@ -54,3 +57,7 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data);
 bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr);
 
 #endif
+
+/*!
+** @}
+*/
