@@ -20,7 +20,7 @@
 // Packet structure
 #define PACKET_NB_BYTES 5
 
-<<<<<<< Sources/packet.h
+
 #pragma pack(push)
 #pragma pack(1)
 
@@ -67,10 +67,6 @@ extern TPacket Packet;
 
 // Acknowledgment bit mask
 extern const uint8_t PACKET_ACK_MASK;
-=======
-
-extern const uint8_t PACKET_ACK_MASK; /*!< Acknowledgement bit mask */
->>>>>>> Sources/packet.h
 
 /*! @brief Initializes the packets by calling the initialization routines of the supporting software modules.
  *

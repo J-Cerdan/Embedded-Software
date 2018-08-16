@@ -31,8 +31,12 @@
 #include "types.h"
 //PE_Types header - provides useful definitions
 #include "PE_Types.h"
+#include "PE_Error.h"
+#include "PE_Const.h"
+#include "IO_Map.h"
 // CPU module - contains low level hardware initialization routines
 #include "Cpu.h"
+#include "Events.h"
 //packet module - contains all the public functions to be used in this module
 #include "packet.h"
 //packet module - contains all the public functions to be used n this module
