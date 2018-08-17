@@ -71,7 +71,7 @@ void LEDs_Off(const TLED color)
  */
 void LEDs_Toggle(const TLED color)
 {
-  GPIOA_PCOR |= GPIO_PTOR_PTTO(color);
+  GPIOA_PTOR |= GPIO_PTOR_PTTO(color);
 }
 
 
