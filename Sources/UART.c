@@ -38,8 +38,8 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
   //this enables no parity and 8 bit mode (8N1)
   UART2_C1 = 0x00;
   // disable transmitter and receiver while we adjust and assign values
-  UART2_C2 &= UART_C2_TE_MASK;
-  UART2_C2 &= UART_C2_RE_MASK;
+  UART2_C2 &= ~UART_C2_TE_MASK;
+  UART2_C2 &= ~UART_C2_RE_MASK;
 
   uint16_t SBR;
   uint8_t brfa;

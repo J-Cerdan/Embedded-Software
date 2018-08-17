@@ -105,7 +105,7 @@ static void HandlePacket(void)
   if (Packet_Command & PACKET_ACK_MASK)
     {
       //removes acknowledgment bit from incoming command packet
-      Packet_Command &= 0x7f;
+      Packet_Command &= ~PACKET_ACK_MASK;
       requiresAck = TRUE;
     }
 
