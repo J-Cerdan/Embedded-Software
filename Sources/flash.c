@@ -34,9 +34,9 @@ struct
     uint8_t byte7;
   } data;
 
-} FCCOB;
+} TFCCOB;
 
-FCCOB fccob;
+static bool LaunchCommand(TFCCOB* commonCommandObject);
 
 /*! @brief Enables the Flash module.
  *
@@ -86,7 +86,7 @@ bool Flash_Write32(volatile uint32_t* const address, const uint32_t data)
  */
 bool Flash_Write16(volatile uint16_t* const address, const uint16_t data)
 {
-  Flash_Write32();
+  //Flash_Write32();
 }
 
 /*! @brief Writes an 8-bit number to Flash.
@@ -98,7 +98,7 @@ bool Flash_Write16(volatile uint16_t* const address, const uint16_t data)
  */
 bool Flash_Write8(volatile uint8_t* const address, const uint8_t data)
 {
-  Flash_Write16();
+  //Flash_Write16();
 }
 
 /*! @brief Erases the entire Flash sector.
@@ -108,7 +108,39 @@ bool Flash_Write8(volatile uint8_t* const address, const uint8_t data)
  */
 bool Flash_Erase(void)
 {
+  TFCCOB fccob;
 
-  +
+  fccob.command = 0x09;
+  return LuanchCommand(*fccob);
 }
 
+static bool LaunchCommand(TFCCOB* commonCommandObject)
+{
+  for (;;)
+    {
+      if (FTFE_FSTAT & FTFE_FSTAT_CCIF_MASK)
+	break;
+    }
+
+  if (FTFE_FSTAT & FTFE_FSTAT_ACCERR_MASK)
+    FTFE_FSTAT &= ~FTFE_FSTAT_ACCERR_MASK;
+
+  if (FTFE_FSTAT & FTFE_FSTAT_FPVIOL_MASK)
+    FTFE_FSTAT &= ~FTFE_FSTAT_FPVIOL_MASK;
+
+  //load command in register
+  FTFE_FCCOB0 = commonCommandObject.command;
+  //load address in register
+  FTFE_FCCOB1 = commonCommandObject.address.address1;
+  FTFE_FCCOB2 = commonCommandObject.address.address2;
+  FTFE_FCCOB3 = commonCommandObject.address.address3;
+  //load data in register
+  FTFE_FCCOB4 = commonCommandObject.data.byte0;
+  FTFE_FCCOB5 = commonCommandObject.data.byte1;
+  FTFE_FCCOB6 = commonCommandObject.data.byte2;
+  FTFE_FCCOB7 = commonCommandObject.data.byte3;
+  FTFE_FCCOB8 = commonCommandObject.data.byte4;
+  FTFE_FCCOB9 = commonCommandObject.data.byte5;
+  FTFE_FCCOBA = commonCommandObject;
+  FTFE_FCCOBB = commonCommandObject;
+}

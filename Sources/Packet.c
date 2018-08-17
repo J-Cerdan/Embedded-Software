@@ -21,6 +21,7 @@
 
 const uint8_t PACKET_ACK_MASK = 0x80; // 1000 0000
 
+TPacket Packet;
 
 bool Packet_Init(const uint32_t baudRate, const uint32_t moduleClk)
 {

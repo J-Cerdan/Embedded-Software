@@ -36,11 +36,13 @@
 #include "IO_Map.h"
 // CPU module - contains low level hardware initialization routines
 #include "Cpu.h"
-#include "Events.h"
+//#include "Events.h"
 //packet module - contains all the public functions to be used in this module
 #include "packet.h"
 //packet module - contains all the public functions to be used n this module
 #include "UART.h"
+
+#include "LEDs.h"
 
 //macros defined for determining which command protocol has been sent
 #define PACKET_SPECIAL 0x04
@@ -159,6 +161,13 @@ int main(void)
   Packet_Init(BaudRate, CPU_BUS_CLK_HZ);
   //sends the initial first three packets when the tower starts up
   HandleSpecialPacket();
+
+  LEDs_Init();
+
+  LEDs_On(LED_ORANGE);
+
+  LEDs_Toggle(LED_ORANGE);
+
 
   for (;;)
   {

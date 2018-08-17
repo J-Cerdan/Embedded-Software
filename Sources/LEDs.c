@@ -14,13 +14,7 @@
 /*! @brief LED to pin mapping on the TWR-K70F120M
  *
  */
-typedef enum
-{
-  LED_ORANGE = (1 << 11),
-  LED_YELLOW = (1 << 28),
-  LED_GREEN = (1 << 29),
-  LED_BLUE = (1 << 10)
-} TLED;
+
 
 /*! @brief Sets up the LEDs before first use.
  *
@@ -28,7 +22,10 @@ typedef enum
  */
 bool LEDs_Init(void)
 {
+  //Turn on port A
   SIM_SCGC5 |= SIM_SCGC5_PORTA_MASK;
+
+  //Set required portA pins to GPIO with drive strength enabled
   PORTA_PCR11 |= PORT_PCR_DSE_MASK;
   PORTA_PCR11 |= PORT_PCR_MUX(1);
   PORTA_PCR28 |= PORT_PCR_DSE_MASK;
@@ -38,11 +35,13 @@ bool LEDs_Init(void)
   PORTA_PCR10 |= PORT_PCR_DSE_MASK;
   PORTA_PCR10 |= PORT_PCR_MUX(1);
 
-  GPIOA_PDOR
-  GPIOA_PSOR
-  GPIOA_PCOR
+  //Initialise GPIOA ports
+  GPIOA_PDOR |= GPIO_PDOR_PDO_MASK;
+  GPIOA_PSOR |= GPIO_PSOR_PTSO_MASK;
+  GPIOA_PCOR |= GPIO_PCOR_PTCO_MASK;
+  GPIOA_PTOR |= GPIO_PTOR_PTTO_MASK;
 
-  return ;
+  return 1;
 }
 
 /*! @brief Turns an LED on.
@@ -52,7 +51,7 @@ bool LEDs_Init(void)
  */
 void LEDs_On(const TLED color)
 {
-
+  GPIOA_PSOR |= GPIO_PSOR_PTSO(color);
 }
 
 /*! @brief Turns off an LED.
@@ -62,7 +61,7 @@ void LEDs_On(const TLED color)
  */
 void LEDs_Off(const TLED color)
 {
-
+  GPIOA_PCOR |= GPIO_PCOR_PTCO(color);
 }
 
 /*! @brief Toggles an LED.
@@ -72,7 +71,8 @@ void LEDs_Off(const TLED color)
  */
 void LEDs_Toggle(const TLED color)
 {
-
+  GPIOA_PCOR |= GPIO_PTOR_PTTO(color);
 }
 
-#endif
+
+
