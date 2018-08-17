@@ -10,16 +10,17 @@
 
 // new types
 #include "flash.h"
+#include "MK70F12.h"
 
-struct
+typedef struct
 {
   uint8_t command;
 
   struct
   {
-    uint8_t address1 = 0x08;
-    uint8_t address2 = 0x00;
-    uint8_t address3 = 0x00;
+    uint8_t address1;
+    uint8_t address2;
+    uint8_t address3;
   } address;
 
   struct
@@ -111,7 +112,10 @@ bool Flash_Erase(void)
   TFCCOB fccob;
 
   fccob.command = 0x09;
-  return LuanchCommand(*fccob);
+  fccob.address.address3 = (uint8_t) FLASH_DATA_START;
+  fccob.address.address2 = (uint8_t) (FLASH_DATA_START >> 8);
+  fccob.address.address1 = (uint8_t) (FLASH_DATA_START >> 16);
+  return LaunchCommand(&fccob);
 }
 
 static bool LaunchCommand(TFCCOB* commonCommandObject)
@@ -129,18 +133,20 @@ static bool LaunchCommand(TFCCOB* commonCommandObject)
     FTFE_FSTAT &= ~FTFE_FSTAT_FPVIOL_MASK;
 
   //load command in register
-  FTFE_FCCOB0 = commonCommandObject.command;
+  FTFE_FCCOB0 = commonCommandObject->command;
   //load address in register
-  FTFE_FCCOB1 = commonCommandObject.address.address1;
-  FTFE_FCCOB2 = commonCommandObject.address.address2;
-  FTFE_FCCOB3 = commonCommandObject.address.address3;
+  FTFE_FCCOB1 = commonCommandObject->address.address1;
+  FTFE_FCCOB2 = commonCommandObject->address.address2;
+  FTFE_FCCOB3 = commonCommandObject->address.address3;
   //load data in register
-  FTFE_FCCOB4 = commonCommandObject.data.byte0;
-  FTFE_FCCOB5 = commonCommandObject.data.byte1;
-  FTFE_FCCOB6 = commonCommandObject.data.byte2;
-  FTFE_FCCOB7 = commonCommandObject.data.byte3;
-  FTFE_FCCOB8 = commonCommandObject.data.byte4;
-  FTFE_FCCOB9 = commonCommandObject.data.byte5;
-  FTFE_FCCOBA = commonCommandObject;
-  FTFE_FCCOBB = commonCommandObject;
+  FTFE_FCCOB4 = commonCommandObject->data.byte0;
+  FTFE_FCCOB5 = commonCommandObject->data.byte1;
+  FTFE_FCCOB6 = commonCommandObject->data.byte2;
+  FTFE_FCCOB7 = commonCommandObject->data.byte3;
+  FTFE_FCCOB8 = commonCommandObject->data.byte4;
+  FTFE_FCCOB9 = commonCommandObject->data.byte5;
+  FTFE_FCCOBA = commonCommandObject->data.byte6;
+  FTFE_FCCOBB = commonCommandObject->data.byte7;
+
+  FTFE_FSTAT &= ~FTFE_FSTAT_CCIF_MASK;
 }
