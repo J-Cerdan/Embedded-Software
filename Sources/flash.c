@@ -12,6 +12,19 @@
 #include "flash.h"
 #include "MK70F12.h"
 
+
+/*
+ * 0x0008_0000
+ * 0x0008_0001
+ * 0x0008_0002
+ * 0x0008_0003
+ * 0x0008_0004
+ * 0x0008_0005
+ * 0x0008_0006
+ * 0x0008_0007
+ */
+
+
 typedef struct
 {
   uint8_t command;
@@ -39,6 +52,8 @@ typedef struct
 
 static bool LaunchCommand(TFCCOB* commonCommandObject);
 
+static bool EraseSector(const uint32_t address);
+
 /*! @brief Enables the Flash module.
  *
  *  @return bool - TRUE if the Flash was setup successfully.
@@ -63,7 +78,17 @@ bool Flash_Init(void)
  */
 bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
 {
+  static uint8_t adressAllocationStorage;
 
+  switch (size)
+  {
+    case 1:
+      break;
+
+    case 2: break;
+
+    case 4: break;
+  }
 }
 
 /*! @brief Writes a 32-bit number to Flash.
@@ -99,7 +124,7 @@ bool Flash_Write16(volatile uint16_t* const address, const uint16_t data)
  */
 bool Flash_Write8(volatile uint8_t* const address, const uint8_t data)
 {
-  //Flash_Write16();
+
 }
 
 /*! @brief Erases the entire Flash sector.
@@ -109,13 +134,7 @@ bool Flash_Write8(volatile uint8_t* const address, const uint8_t data)
  */
 bool Flash_Erase(void)
 {
-  TFCCOB fccob;
-
-  fccob.command = 0x09;
-  fccob.address.address3 = (uint8_t) FLASH_DATA_START;
-  fccob.address.address2 = (uint8_t) (FLASH_DATA_START >> 8);
-  fccob.address.address1 = (uint8_t) (FLASH_DATA_START >> 16);
-  return LaunchCommand(&fccob);
+  EraseSector((uint32_t) FLASH_DATA_START);
 }
 
 static bool LaunchCommand(TFCCOB* commonCommandObject)
@@ -149,4 +168,15 @@ static bool LaunchCommand(TFCCOB* commonCommandObject)
   FTFE_FCCOBB = commonCommandObject->data.byte7;
 
   FTFE_FSTAT &= ~FTFE_FSTAT_CCIF_MASK;
+}
+
+static bool EraseSector(const uint32_t address)
+{
+  TFCCOB fccob;
+
+  fccob.command = 0x09;
+  fccob.address.address3 = (uint8_t) address;
+  fccob.address.address2 = (uint8_t) (address >> 8);
+  fccob.address.address1 = (uint8_t) (address >> 16);
+  return LaunchCommand(&fccob);
 }
