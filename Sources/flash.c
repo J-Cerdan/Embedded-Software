@@ -31,21 +31,21 @@ typedef struct
 
   struct
   {
-    uint8_t address1;
-    uint8_t address2;
-    uint8_t address3;
+    uint8_t address1,
+    	    address2,
+	    address3;
   } address;
 
   struct
   {
-    uint8_t byte0;
-    uint8_t byte1;
-    uint8_t byte2;
-    uint8_t byte3;
-    uint8_t byte4;
-    uint8_t byte5;
-    uint8_t byte6;
-    uint8_t byte7;
+    uint8_t byte0,
+	    byte1,
+	    byte2,
+	    byte3,
+	    byte4,
+	    byte5,
+	    byte6,
+	    byte7;
   } data;
 
 } TFCCOB;
