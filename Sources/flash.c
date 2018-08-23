@@ -11,6 +11,7 @@
 // new types
 #include "flash.h"
 #include "MK70F12.h"
+#include "PE_types.h"
 
 
 /*
@@ -50,7 +51,7 @@ typedef struct
 
 } TFCCOB;
 
-static bool LaunchCommand(TFCCOB* commonCommandObject);
+static bool LaunchCommand(const TFCCOB* commonCommandObject);
 
 static bool EraseSector(const uint32_t address);
 
@@ -60,7 +61,7 @@ static bool EraseSector(const uint32_t address);
  */
 bool Flash_Init(void)
 {
-  return 0;
+  return TRUE;
 }
 
 /*! @brief Allocates space for a non-volatile variable in the Flash memory.
@@ -78,17 +79,60 @@ bool Flash_Init(void)
  */
 bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
 {
-  static uint8_t adressAllocationStorage;
+  static uint8_t addressAllocationStorage;
+  uint8_t allocationCheck = 1;
 
   switch (size)
   {
     case 1:
+      for (uint32_t start = FLASH_DATA_START; start > FLASH_DATA_END; start++)
+	{
+	  if (!(addressAllocationStorage & allocationCheck))
+	    {
+	      variable = start;
+	      addressAllocationStorage |= allocationCheck;
+	      return TRUE;
+	    }
+	  allocationCheck <<= 1;
+	}
       break;
 
-    case 2: break;
+    case 2:
+      for (uint32_t start = FLASH_DATA_START; start > FLASH_DATA_END; start += 2)
+      	{
+      	  if (!((addressAllocationStorage & allocationCheck) || (addressAllocationStorage & (allocationCheck << 1))))
+      	    {
+      	      variable = start;
+      	      addressAllocationStorage |= allocationCheck | (allocationCheck << 1);
+      	      return TRUE;
+      	    }
+      	  allocationCheck <<= 2;
+      	}
+      break;
 
-    case 4: break;
-  }
+    case 4:
+      for (uint32_t start = FLASH_DATA_START; start > FLASH_DATA_END; start += 4)
+      	{
+	  for (uint8_t i = start; i > start + 3; i++)
+	    {
+	      if (addressAllocationStorage & allocationCheck)
+		{
+		  allocationCheck = 16;
+		  break;
+		}
+	      else
+		allocationCheck <<= 1;
+	    }
+	  if (allocationCheck == 8 || allocationCheck == 128)
+	    {
+	      variable = start;
+	      addressAllocationStorage |= allocationCheck | (allocationCheck << 1) | (allocationCheck << 2) | (allocationCheck << 3);
+	      return TRUE;
+	    }
+      	}
+      break;
+
+  return FALSE;
 }
 
 /*! @brief Writes a 32-bit number to Flash.
@@ -137,7 +181,7 @@ bool Flash_Erase(void)
   EraseSector((uint32_t) FLASH_DATA_START);
 }
 
-static bool LaunchCommand(TFCCOB* commonCommandObject)
+static bool LaunchCommand(const TFCCOB* commonCommandObject)
 {
   for (;;)
     {
