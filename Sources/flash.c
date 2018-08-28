@@ -25,6 +25,7 @@
  * 0x0008_0007
  */
 
+#define FCCOB_MAX_DATA 8
 
 typedef struct
 {
@@ -37,27 +38,21 @@ typedef struct
 	    address3;
   } address;
 
-  struct
-  {
-    uint8_t byte0,
-	    byte1,
-	    byte2,
-	    byte3,
-	    byte4,
-	    byte5,
-	    byte6,
-	    byte7;
-  } data;
+  uint8_t data[FCCOB_MAX_DATA];
 
 } TFCCOB;
 
 static bool LaunchCommand(const TFCCOB* commonCommandObject);
 
-static bool EraseSector(const uint32_t address);
+static bool EraseSector(void);
 
 static bool WritePhrase(const uint32_t address, const uint64union_t phrase);
 
-static bool ModifyPhrase(const uint32_t address, const uint64union_t phrase);
+//static bool ModifyPhrase(const uint32_t address, const uint64union_t phrase);
+
+static bool LoadData(TFCCOB* commonCommandObject, const uint64_t data);
+
+static bool LoadAddress(TFCCOB* commonCommandObject);
 
 
 /*! @brief Enables the Flash module.
@@ -90,11 +85,11 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
   switch (size)
   {
     case 1:
-      for (uint32_t start = FLASH_DATA_START; start > FLASH_DATA_END; start++)
+      for (uint32_t start = FLASH_DATA_START; start <= FLASH_DATA_END; start++)
 	{
 	  if (!(addressAllocationStorage & allocationCheck))
 	    {
-	      variable = (void**) start;
+	      *variable = (void**) start;
 	      addressAllocationStorage |= allocationCheck;
 	      return TRUE;
 	    }
@@ -103,11 +98,11 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
       break;
 
     case 2:
-      for (uint32_t start = FLASH_DATA_START; start > FLASH_DATA_END; start += 2)
+      for (uint32_t start = FLASH_DATA_START; start <= FLASH_DATA_END; start += 2)
       	{
       	  if (!((addressAllocationStorage & allocationCheck) || (addressAllocationStorage & (allocationCheck << 1))))
       	    {
-      	      variable = start;
+      	      *variable = (void**) start;
       	      addressAllocationStorage |= allocationCheck | (allocationCheck << 1);
       	      return TRUE;
       	    }
@@ -116,7 +111,7 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
       break;
 
     case 4:
-      for (uint32_t start = FLASH_DATA_START; start > FLASH_DATA_END; start += 4)
+      for (uint32_t start = FLASH_DATA_START; start <= FLASH_DATA_END; start += 4)
       	{
 	  for (uint8_t i = start; i > start + 3; i++)
 	    {
@@ -130,7 +125,7 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
 	    }
 	  if (allocationCheck == 8 || allocationCheck == 128)
 	    {
-	      variable = start;
+	      *variable = (void**) start;
 	      addressAllocationStorage |= allocationCheck | (allocationCheck << 1) | (allocationCheck << 2) | (allocationCheck << 3);
 	      return TRUE;
 	    }
@@ -158,7 +153,7 @@ bool Flash_Write32(volatile uint32_t* const address, const uint32_t data)
     else
       addressPosition.s.Lo = data;
 
-    return ModifyPhrase((uint32_t) address, addressPosition);
+    return WritePhrase((uint32_t) address, addressPosition);
 }
 
 /*! @brief Writes a 16-bit number to Flash.
@@ -178,7 +173,7 @@ bool Flash_Write16(volatile uint16_t* const address, const uint16_t data)
   else
     addressPosition.s.Lo = data;
 
-  return Flash_Write32((uint32_t*) address, (uint32_t) addressPosition);
+  return Flash_Write32((uint32_t*) address, addressPosition.l);
 }
 
 /*! @brief Writes an 8-bit number to Flash.
@@ -199,7 +194,7 @@ bool Flash_Write8(volatile uint8_t* const address, const uint8_t data)
   else
     addressPosition.s.Lo = data;
 
-  return Flash_Write16((uint16_t*) address, (uint16_t) addressPosition);
+  return Flash_Write16((uint16_t*) address, addressPosition.l);
 }
 
 /*! @brief Erases the entire Flash sector.
@@ -210,7 +205,7 @@ bool Flash_Write8(volatile uint8_t* const address, const uint8_t data)
 bool Flash_Erase(void)
 {
 
-  return EraseSector((uint32_t) FLASH_DATA_START);
+  return EraseSector();
 }
 
 static bool LaunchCommand(const TFCCOB* commonCommandObject)
@@ -234,38 +229,67 @@ static bool LaunchCommand(const TFCCOB* commonCommandObject)
   FTFE_FCCOB2 = commonCommandObject->address.address2;
   FTFE_FCCOB3 = commonCommandObject->address.address3;
   //load data in register
-  FTFE_FCCOB7 = commonCommandObject->data.byte0;
-  FTFE_FCCOB6 = commonCommandObject->data.byte1;
-  FTFE_FCCOB5 = commonCommandObject->data.byte2;
-  FTFE_FCCOB4 = commonCommandObject->data.byte3;
-  FTFE_FCCOBB = commonCommandObject->data.byte4;
-  FTFE_FCCOBA = commonCommandObject->data.byte5;
-  FTFE_FCCOB9 = commonCommandObject->data.byte6;
-  FTFE_FCCOB8 = commonCommandObject->data.byte7;
+  FTFE_FCCOB7 = commonCommandObject->data[0];
+  FTFE_FCCOB6 = commonCommandObject->data[1];
+  FTFE_FCCOB5 = commonCommandObject->data[2];
+  FTFE_FCCOB4 = commonCommandObject->data[3];
+  FTFE_FCCOBB = commonCommandObject->data[4];
+  FTFE_FCCOBA = commonCommandObject->data[5];
+  FTFE_FCCOB9 = commonCommandObject->data[6];
+  FTFE_FCCOB8 = commonCommandObject->data[7];
 
   FTFE_FSTAT &= ~FTFE_FSTAT_CCIF_MASK;
   return TRUE;
 }
 
-static bool EraseSector(const uint32_t address)
+static bool EraseSector(void)
 {
   TFCCOB fccob;
 
   fccob.command = 0x09;
-  fccob.address.address3 = (uint8_t) address;
-  fccob.address.address2 = (uint8_t) (address >> 8);
-  fccob.address.address1 = (uint8_t) (address >> 16);
+  LoadAddress(&fccob);
   return LaunchCommand(&fccob);
 }
 
 static bool WritePhrase(const uint32_t address, const uint64union_t phrase)
 {
-  uint8_t*  = (uint8_t*)( FLASH_DATA_START);
+  uint8_t* readData = (uint8_t*)(FLASH_DATA_START);
+  uint64union_t temp = phrase;
+  TFCCOB fccob;
 
+  for (uint8_t i = 0; i < 8; i++, (uint32_t) readData++)
+    {
+      if(*readData != 0 && (uint32_t) readData != address)
+	{
+	  temp.l |= ((uint64_t) *readData << (i * 8));
+	}
+    }
+
+  fccob.command = 0x07;
+  LoadAddress(&fccob);
+  LoadData(&fccob, temp.l);
+
+  if(Flash_Erase())
+    return LaunchCommand(&fccob);
 }
 
 
+static bool LoadAddress(TFCCOB* commonCommandObject)
+{
+  uint32_t address = (uint32_t) FLASH_DATA_START;
+  commonCommandObject->address.address3 = (uint8_t) address;
+  commonCommandObject->address.address2 = (uint8_t) (address >> 8);
+  commonCommandObject->address.address1 = (uint8_t) (address >> 16);
+}
 
+static bool LoadData(TFCCOB* commonCommandObject, const uint64_t data)
+{
+  for (uint8_t i = 0; i < 8; i++)
+    {
+      commonCommandObject->data[i] = data >> (i * 8);
+    }
+ return TRUE;
+}
 
 
 

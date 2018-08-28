@@ -43,6 +43,8 @@
 //packet module - contains all the public functions to be used n this module
 #include "UART.h"
 
+#include "Flash.h"
+
 #include "LEDs.h"
 
 //macros defined for determining which command protocol has been sent
@@ -53,7 +55,7 @@
 //global private constant to store the baudRate
 static const uint32_t BaudRate = 38400;
 //Private global variable to store the tower number
-static uint16union_t TowerNumber;
+volatile uint16union_t *NvTowerNb;
 //Private global constants to store the major and minor tower version
 static const uint8_t MajorTowerVersion = 0x01;
 static const uint8_t MinorTowerVersion = 0x00;
@@ -68,11 +70,11 @@ static bool HandleNumberPacket(void)
   //if statement determines if this is a 'set' command to set a new Tower number
   if (Packet_Parameter1 == 0x02)
     {
-      TowerNumber.s.Lo = Packet_Parameter2;
-      TowerNumber.s.Hi = Packet_Parameter3;
+      //TowerNumber.s.Lo = Packet_Parameter2;
+      //TowerNumber.s.Hi = Packet_Parameter3;
     }
 
-  return Packet_Put(0x0B, 0x01, TowerNumber.s.Lo, TowerNumber.s.Hi);
+  return TRUE; //Packet_Put(0x0B, 0x01, TowerNumber.s.Lo, TowerNumber.s.Hi);
 }
 
 /*! @brief Handles the "Version number" request packet
@@ -154,7 +156,7 @@ int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
   // stores the tower number as a union to be able to access hi and lo bytes
-  TowerNumber.l = 6702;
+  //TowerNumber.l = 6702;
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
   /*** End of Processor Expert internal initialization.                    ***/
@@ -162,6 +164,12 @@ int main(void)
   Packet_Init(BaudRate, CPU_BUS_CLK_HZ);
   //sends the initial first three packets when the tower starts up
   HandleSpecialPacket();
+
+  uint16_t data = 6702;
+
+  Flash_AllocateVar(&NvTowerNb, sizeof(*NvTowerNb));
+
+  Flash_Write16((uint16_t *)NvTowerNb, data);
 
   LEDs_Init();
 
