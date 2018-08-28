@@ -37,7 +37,7 @@
 // CPU module - contains low level hardware initialization routines
 #include "Cpu.h"
 #include "Events.h"
-//#include "Events.h"
+#include "Events.h"
 //packet module - contains all the public functions to be used in this module
 #include "packet.h"
 //packet module - contains all the public functions to be used n this module
