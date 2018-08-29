@@ -155,6 +155,12 @@ static void HandlePacket(void)
 int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
+
+  volatile uint8_t *byte;
+  volatile uint32union_t *word;
+  volatile uint16union_t *halfword;
+
+  uint8_t success = 0;
   // stores the tower number as a union to be able to access hi and lo bytes
   //TowerNumber.l = 6702;
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
@@ -168,6 +174,12 @@ int main(void)
   uint16_t data = 6702;
 
   Flash_AllocateVar(&NvTowerNb, sizeof(*NvTowerNb));
+
+  Flash_AllocateVar(&byte, sizeof(*byte));
+
+  Flash_AllocateVar(&word, sizeof(*word));
+
+  success = Flash_AllocateVar(&halfword, sizeof(*halfword));
 
   Flash_Write16((uint16_t *)NvTowerNb, data);
 
