@@ -36,26 +36,55 @@
 #include "IO_Map.h"
 // CPU module - contains low level hardware initialization routines
 #include "Cpu.h"
-//#include "Events.h"
+#include "Events.h"
+#include "Events.h"
 //packet module - contains all the public functions to be used in this module
 #include "packet.h"
 //packet module - contains all the public functions to be used n this module
 #include "UART.h"
 
+#include "Flash.h"
+
 #include "LEDs.h"
 
 //macros defined for determining which command protocol has been sent
 #define PACKET_SPECIAL 0x04
+#define PACKET_PROGRAM_BYTE 0x07
+#define PACKET_READ_BYTE 0x08
 #define PACKET_VERSION 0x09
 #define PACKET_NUMBER 0x0B
+#define PACKET_TOWER_MODE 0x0D
 
 //global private constant to store the baudRate
 static const uint32_t BaudRate = 38400;
 //Private global variable to store the tower number
-static uint16union_t TowerNumber;
+volatile uint16union_t *NvTowerNb;
 //Private global constants to store the major and minor tower version
 static const uint8_t MajorTowerVersion = 0x01;
 static const uint8_t MinorTowerVersion = 0x00;
+
+
+
+
+static bool HandleProgramPacket(void)
+{
+  return TRUE;
+}
+
+static bool HandleReadPacket(void)
+{
+  return TRUE;
+}
+
+/*! @brief Handles the "Version number" request packet
+ *
+ *  @param None.
+ *  @return bool - TRUE if the packet was placed in the FIFO successfully
+ */
+static bool HandleVersionPacket(void)
+{
+  return Packet_Put(0x09, 0x76, MajorTowerVersion, MinorTowerVersion);
+}
 
 /*! @brief Handles the "Tower number" request packet
  *
@@ -67,21 +96,16 @@ static bool HandleNumberPacket(void)
   //if statement determines if this is a 'set' command to set a new Tower number
   if (Packet_Parameter1 == 0x02)
     {
-      TowerNumber.s.Lo = Packet_Parameter2;
-      TowerNumber.s.Hi = Packet_Parameter3;
+      //TowerNumber.s.Lo = Packet_Parameter2;
+      //TowerNumber.s.Hi = Packet_Parameter3;
     }
 
-  return Packet_Put(0x0B, 0x01, TowerNumber.s.Lo, TowerNumber.s.Hi);
+  return TRUE; //Packet_Put(0x0B, 0x01, TowerNumber.s.Lo, TowerNumber.s.Hi);
 }
 
-/*! @brief Handles the "Version number" request packet
- *
- *  @param None.
- *  @return bool - TRUE if the packet was placed in the FIFO successfully
- */
-static bool HandleVersionPacket(void)
+static bool HandleModePacket(void)
 {
-  return Packet_Put(0x09, 0x76, MajorTowerVersion, MinorTowerVersion);
+  return TRUE;
 }
 
 /*! @brief Handles the "Special" request packet
@@ -104,38 +128,42 @@ static bool HandleSpecialPacket(void)
  */
 static void HandlePacket(void)
 {
-  uint8_t requiresAck; //used to store whether the PC wants acknowledgment or not
   uint8_t success; //used to store whether the tower executed the all the requests successfully
 
-  //determines if the PC wants acknowledgment
-  if (Packet_Command & PACKET_ACK_MASK)
-    {
-      //removes acknowledgment bit from incoming command packet
-      Packet_Command &= ~PACKET_ACK_MASK;
-      requiresAck = TRUE;
-    }
-
   //handles the requests packets coming from the PC
-  switch (Packet_Command)
+  switch (Packet_Command & ~PACKET_ACK_MASK)
   {
     case (PACKET_SPECIAL):
-     success = HandleSpecialPacket();
-      break;
+	success = HandleSpecialPacket();
+    break;
+
+    case (PACKET_PROGRAM_BYTE):
+	success = HandleProgramPacket();
+    break;
+
+    case (PACKET_READ_BYTE):
+	success = HandleReadPacket();
+    break;
 
     case (PACKET_VERSION):
 	success = HandleVersionPacket();
-      break;
+    break;
 
     case (PACKET_NUMBER):
 	success = HandleNumberPacket();
+    break;
+
+    case (PACKET_TOWER_MODE):
+	success = HandleModePacket();
+    break;
 
 
    break;
   }
-   if (requiresAck) //sends acknowledgment (if PC requested it) packet to PC
+   if (Packet_Command & PACKET_ACK_MASK) //sends acknowledgment (if PC requested it) packet to PC
      {
-       if (success) //changes the 7th bit to a 1 if tower was successful in executing the PC request
-	 Packet_Command |= PACKET_ACK_MASK;
+       if (!success) //changes the 7th bit to a 1 if tower was successful in executing the PC request
+	 Packet_Command &= ~PACKET_ACK_MASK;
        //sends the acknowledgment packet to the PC
        Packet_Put(Packet_Command, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3);
      }
@@ -153,7 +181,7 @@ int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
   // stores the tower number as a union to be able to access hi and lo bytes
-  TowerNumber.l = 6702;
+  //TowerNumber.l = 6702;
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
   /*** End of Processor Expert internal initialization.                    ***/
@@ -161,6 +189,12 @@ int main(void)
   Packet_Init(BaudRate, CPU_BUS_CLK_HZ);
   //sends the initial first three packets when the tower starts up
   HandleSpecialPacket();
+
+  uint16_t data = 6702;
+
+  Flash_AllocateVar((volatile void **)&NvTowerNb, sizeof(*NvTowerNb));
+
+  Flash_Write16((uint16_t *)NvTowerNb, data);
 
   LEDs_Init();
 
