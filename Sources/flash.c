@@ -160,7 +160,7 @@ bool Flash_Write32(volatile uint32_t* const address, const uint32_t data)
 	addressPosition.s.Lo = data;
 
 	// Then call flash write 64, passing in the temp variable
-	return WritePhrase((temp & ~0x0F), addressPosition.l);
+	return ModifyPhrase((temp & ~0x0F), addressPosition);
     }
   return FALSE;
 }

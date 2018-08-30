@@ -56,9 +56,10 @@
 #define PACKET_TOWER_MODE 0x0D
 
 //global private constant to store the baudRate
-static const uint32_t BaudRate = 38400;
+static const uint32_t BaudRate = 115200;
 //Private global variable to store the tower number
 volatile uint16union_t *NvTowerNb;
+volatile uint16union_t *NvTowerMd;
 //Private global constants to store the major and minor tower version
 static const uint8_t MajorTowerVersion = 0x01;
 static const uint8_t MinorTowerVersion = 0x00;
@@ -94,18 +95,29 @@ static bool HandleVersionPacket(void)
 static bool HandleNumberPacket(void)
 {
   //if statement determines if this is a 'set' command to set a new Tower number
-  if (Packet_Parameter1 == 0x02)
-    {
-      //TowerNumber.s.Lo = Packet_Parameter2;
-      //TowerNumber.s.Hi = Packet_Parameter3;
-    }
+  //if (Packet_Parameter1 >= 0x01 && Packet_Parameter1 <=0x02)
 
-  return TRUE; //Packet_Put(0x0B, 0x01, TowerNumber.s.Lo, TowerNumber.s.Hi);
+      if (Packet_Parameter1 == 0x02)
+      {
+	Flash_Write16((uint16_t*)NvTowerNb, Packet_Parameter23);
+      }
+      return Packet_Put(0x0B, 0x01, (*NvTowerNb).s.Lo, (*NvTowerNb).s.Hi);
+
+  //return FALSE;
 }
 
 static bool HandleModePacket(void)
 {
-  return TRUE;
+  //if statement determines if this is a 'set' command to set a new Tower number
+  //if (Packet_Parameter1 >= 0x01 && Packet_Parameter1 <=0x02)
+
+     if (Packet_Parameter1 == 0x02)
+      {
+	Flash_Write16((uint16_t*)NvTowerMd, Packet_Parameter23);
+      }
+      return Packet_Put(0x0D, 0x01, (*NvTowerMd).s.Lo, (*NvTowerMd).s.Hi);
+
+  //return FALSE;
 }
 
 /*! @brief Handles the "Special" request packet
@@ -116,9 +128,8 @@ static bool HandleModePacket(void)
 static bool HandleSpecialPacket(void)
 {
   //calls to send all three packets to PC
-  return Packet_Put(Packet_Command, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3) &
-	 HandleVersionPacket() &
-	 HandleNumberPacket();
+  return Packet_Put(0x04, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3) && HandleVersionPacket() && HandleModePacket();
+	 //HandleNumberPacket();
 }
 
 /*! @brief Handles the packets that comes from the PC and determines what to do
@@ -181,26 +192,29 @@ int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
   // stores the tower number as a union to be able to access hi and lo bytes
-  //TowerNumber.l = 6702;
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
   /*** End of Processor Expert internal initialization.                    ***/
-  //initializes the Packet and passes in the baud rate and CPU bus clock
-  Packet_Init(BaudRate, CPU_BUS_CLK_HZ);
-  //sends the initial first three packets when the tower starts up
-  HandleSpecialPacket();
-
-  uint16_t data = 6702;
-
-  Flash_AllocateVar((volatile void **)&NvTowerNb, sizeof(*NvTowerNb));
-
-  Flash_Write16((uint16_t *)NvTowerNb, data);
-
   LEDs_Init();
 
-  LEDs_On(LED_ORANGE);
+  if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init())
+    LEDs_On(LED_ORANGE);
 
-  LEDs_Toggle(LED_ORANGE);
+  uint16_t towerNumber = 6702;
+  uint16_t towerMode = 1;
+
+  if (Flash_AllocateVar((volatile void **)&NvTowerNb, sizeof(*NvTowerNb)) &&
+      Flash_AllocateVar((volatile void **)&NvTowerMd, sizeof(*NvTowerMd)))
+    {
+      if ((*NvTowerNb).l == 0xffff)
+	Flash_Write16((uint16_t*)NvTowerNb, towerNumber);
+
+      if ((*NvTowerMd).l == 0xffff)
+	Flash_Write16((uint16_t*)NvTowerMd, towerMode);
+    }
+
+  //sends the initial packets when the tower starts up
+  HandleSpecialPacket();
 
 
   for (;;)

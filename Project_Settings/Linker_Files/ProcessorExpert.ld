@@ -4,13 +4,13 @@
 /*##                                   */
 /*##     Filename  : ProcessorExpert.ld */
 /*##                                   */
-/*##     Project   : Lab2-flash        */
+/*##     Project   : es18spr05.new     */
 /*##                                   */
 /*##     Processor : MK70FN1M0VMJ12    */
 /*##                                   */
 /*##     Compiler  : GNU C Compiler    */
 /*##                                   */
-/*##     Date/Time : 2018-08-29, 18:02, # CodeGen: 1 */
+/*##     Date/Time : 2018-08-30, 18:04, # CodeGen: 0 */
 /*##                                   */
 /*##     Abstract  :                   */
 /*##                                   */
