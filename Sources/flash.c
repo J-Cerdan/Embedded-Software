@@ -48,13 +48,13 @@ static bool LaunchCommand(const TFCCOB* commonCommandObject);
 
 static bool EraseSector(void);
 
-static bool WritePhrase(const uint32_t address, const uint64union_t phrase);
+static bool WritePhrase(const uint32_t address, const uint64_t phrase);
 
-//static bool ModifyPhrase(const uint32_t address, const uint64union_t phrase);
+static bool ModifyPhrase(const uint32_t address, const uint64union_t phrase);
 
 static bool LoadData(TFCCOB* commonCommandObject, const uint64_t data);
 
-static bool LoadAddress(TFCCOB* commonCommandObject);
+static bool LoadAddress(uint32_t address, TFCCOB* commonCommandObject);
 
 
 /*! @brief Enables the Flash module.
@@ -146,25 +146,23 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
  */
 bool Flash_Write32(volatile uint32_t* const address, const uint32_t data)
 {
-  uint64union_t addressPosition;
-  uint32_t* temp = address;
-  addressPosition.l = 0;
+  if ((uint32_t)address >= FLASH_DATA_START && (uint32_t)address <= FLASH_DATA_END)
+    {
+      // First read the whole 64 bits into a temporary variable.
+      uint64union_t addressPosition;
+      uint32_t temp = (uint32_t)address;
+      addressPosition.l = *((uint64_t*)(temp & ~0x0F));
 
-    if(((uint32_t) address / 4) % 2)
-      {
+      // Then write in your 32 bits to the high or low part of the temp variable
+      if(((uint32_t) address / 4) % 2)
 	addressPosition.s.Hi = data;
-	(uint32_t) temp -= 4;
-	addressPosition.s.Lo = *temp;
-      }
-
-    else
-      {
+      else
 	addressPosition.s.Lo = data;
-	(uint32_t) temp += 4;
-	addressPosition.s.Hi = *temp;
-      }
 
-    return WritePhrase((uint32_t) address, addressPosition);
+	// Then call flash write 64, passing in the temp variable
+	return WritePhrase((temp & ~0x0F), addressPosition.l);
+    }
+  return FALSE;
 }
 
 /*! @brief Writes a 16-bit number to Flash.
@@ -176,25 +174,21 @@ bool Flash_Write32(volatile uint32_t* const address, const uint32_t data)
  */
 bool Flash_Write16(volatile uint16_t* const address, const uint16_t data)
 {
-  uint32union_t addressPosition;
-  uint16_t* temp = address;
-  addressPosition.l = 0;
-
-  if(((uint32_t) address / 2) % 2)
+  if ((uint32_t)address >= FLASH_DATA_START && (uint32_t)address <= FLASH_DATA_END)
     {
-      addressPosition.s.Hi = data;
-      (uint32_t) temp -= 2;
-      addressPosition.s.Lo = *temp;
-    }
+      uint32_t temp = (uint32_t)address;
+      uint32union_t addressPosition;
 
-  else
-    {
-      addressPosition.s.Lo = data;
-      (uint32_t) temp += 2;
-      addressPosition.s.Hi = *temp;
-    }
+      addressPosition.l = *((uint16_t*)(temp & ~0x03));
 
-  return Flash_Write32((uint32_t*) address, addressPosition.l);
+      if(((uint32_t) address / 2) % 2)
+	addressPosition.s.Hi = data;
+      else
+	addressPosition.s.Lo = data;
+
+      return Flash_Write32((uint32_t*)(temp & ~0x03), addressPosition.l);
+    }
+  return FALSE;
 }
 
 /*! @brief Writes an 8-bit number to Flash.
@@ -206,22 +200,20 @@ bool Flash_Write16(volatile uint16_t* const address, const uint16_t data)
  */
 bool Flash_Write8(volatile uint8_t* const address, const uint8_t data)
 {
-  uint16union_t addressPosition;
-  uint8_t* temp = address;
-  addressPosition.l = 0;
-
-  if ((uint32_t) address % 2)
+  if ((uint32_t)address >= FLASH_DATA_START && (uint32_t)address <= FLASH_DATA_END)
     {
-      addressPosition.s.Hi = data;
-      (uint32_t) temp --;
-      addressPosition.s.Lo = *temp;
-    }
-  else
-    addressPosition.s.Lo = data;
-  (uint32_t) temp ++;
-  addressPosition.s.Hi = *temp;
+      uint16union_t addressPosition;
+      uint32_t temp = (uint32_t)address;
+      addressPosition.l = *(uint8_t*)(temp & ~0x01);
 
-  return Flash_Write16((uint16_t*) address, addressPosition.l);
+      if ((uint32_t) address % 2)
+	addressPosition.s.Hi = data;
+      else
+	addressPosition.s.Lo = data;
+
+      return Flash_Write16((uint16_t*)(temp & ~0x01), addressPosition.l);
+    }
+  return FALSE;
 }
 
 /*! @brief Erases the entire Flash sector.
@@ -231,8 +223,25 @@ bool Flash_Write8(volatile uint8_t* const address, const uint8_t data)
  */
 bool Flash_Erase(void)
 {
-
   return EraseSector();
+}
+
+static bool ModifyPhrase(const uint32_t address, const uint64union_t phrase)
+{
+  if (Flash_Erase())
+    return WritePhrase(address, phrase.l);
+
+  return FALSE;
+}
+
+static bool EraseSector(void)
+{
+  uint32_t address = FLASH_DATA_START;
+  TFCCOB fccob;
+
+  fccob.command = 0x09;
+  LoadAddress(address, &fccob);
+  return LaunchCommand(&fccob);
 }
 
 static bool LaunchCommand(const TFCCOB* commonCommandObject)
@@ -265,47 +274,25 @@ static bool LaunchCommand(const TFCCOB* commonCommandObject)
   FTFE_FCCOB9 = commonCommandObject->data[6];
   FTFE_FCCOB8 = commonCommandObject->data[7];
 
-  FTFE_FSTAT &= ~FTFE_FSTAT_CCIF_MASK;
+  // set ccif bit to 0
+  FTFE_FSTAT = FTFE_FSTAT_CCIF_MASK;
   return TRUE;
 }
 
-static bool EraseSector(void)
+static bool WritePhrase(const uint32_t address, const uint64_t phrase)
 {
   TFCCOB fccob;
 
-  fccob.command = 0x09;
-  LoadAddress(&fccob);
+  fccob.command = 0x07;
+  LoadAddress(address, &fccob);
+  LoadData(&fccob, phrase);
+
   return LaunchCommand(&fccob);
 }
 
-static bool WritePhrase(const uint32_t address, const uint64union_t phrase)
+
+static bool LoadAddress(uint32_t address, TFCCOB* commonCommandObject)
 {
-  TFCCOB fccob;
-
-  /*for (uint8_t i = 0; i < 8; i++, (uint32_t) readData++)
-    {
-      if(allocationCheck & FlashMemoryStorage)
-	{
-	  temp.l |= ((uint64_t) *readData << (i * 8));
-	}
-      allocationCheck <<= 1;
-    }
-    */
-
-  fccob.command = 0x07;
-  LoadAddress(&fccob);
-  LoadData(&fccob, phrase);
-
-  if(Flash_Erase())
-    return LaunchCommand(&fccob);
-
-  return FALSE;
-}
-
-
-static bool LoadAddress(TFCCOB* commonCommandObject)
-{
-  uint32_t address = (uint32_t) FLASH_DATA_START;
   commonCommandObject->address.address3 = (uint8_t) address;
   commonCommandObject->address.address2 = (uint8_t) (address >> 8);
   commonCommandObject->address.address1 = (uint8_t) (address >> 16);
@@ -319,9 +306,6 @@ static bool LoadData(TFCCOB* commonCommandObject, const uint64_t data)
     }
  return TRUE;
 }
-
-
-
 
 
 

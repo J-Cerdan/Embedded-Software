@@ -20,12 +20,16 @@
 
 bool FIFO_Init(TFIFO * const fifo)
 {
-  //Initialisation of END and Start indices and Number of Bytes of FIFO
-  fifo->End = 0;
-  fifo->Start = 0;
-  fifo->NbBytes = 0;
+  if (fifo != NULL)
+    {
+      //Initialisation of END and Start indices and Number of Bytes of FIFO
+      fifo->End = 0;
+      fifo->Start = 0;
+      fifo->NbBytes = 0;
+      return TRUE;
+    }
 
-  return TRUE;
+  return FALSE;
 }
 
 
