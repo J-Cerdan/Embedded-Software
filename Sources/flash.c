@@ -9,7 +9,7 @@
  */
 
 // new types
-#include "flash.h"
+#include "Flash.h"
 #include "MK70F12.h"
 #include "PE_types.h"
 
@@ -27,7 +27,7 @@
 
 #define FCCOB_MAX_DATA 8
 
-static uint8_t AddressAllocationStorage = 0;
+
 
 typedef struct
 {
@@ -81,6 +81,7 @@ bool Flash_Init(void)
  */
 bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
 {
+  static uint8_t addressAllocationStorage = 0;
   uint8_t allocationCheck = 1;
 
   switch (size)
@@ -146,12 +147,12 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
  */
 bool Flash_Write32(volatile uint32_t* const address, const uint32_t data)
 {
-  if ((uint32_t)address >= FLASH_DATA_START && (uint32_t)address <= FLASH_DATA_END)
+  if ((uint32_t)address >= FLASH_DATA_START && (uint32_t)address <= FLASH_DATA_END && !((uint32_t)address % 4))
     {
       // First read the whole 64 bits into a temporary variable.
       uint64union_t addressPosition;
       uint32_t temp = (uint32_t)address;
-      addressPosition.l = *((uint64_t*)(temp & ~0x0F));
+      addressPosition.l = _FP(temp & ~0x0F);
 
       // Then write in your 32 bits to the high or low part of the temp variable
       if(((uint32_t) address / 4) % 2)
@@ -174,12 +175,12 @@ bool Flash_Write32(volatile uint32_t* const address, const uint32_t data)
  */
 bool Flash_Write16(volatile uint16_t* const address, const uint16_t data)
 {
-  if ((uint32_t)address >= FLASH_DATA_START && (uint32_t)address <= FLASH_DATA_END)
+  if ((uint32_t)address >= FLASH_DATA_START && (uint32_t)address <= FLASH_DATA_END && !((uint32_t)address % 2))
     {
       uint32_t temp = (uint32_t)address;
       uint32union_t addressPosition;
 
-      addressPosition.l = *((uint16_t*)(temp & ~0x03));
+      addressPosition.l = _FW(temp & ~0x03);
 
       if(((uint32_t) address / 2) % 2)
 	addressPosition.s.Hi = data;
@@ -276,7 +277,12 @@ static bool LaunchCommand(const TFCCOB* commonCommandObject)
 
   // set ccif bit to 0
   FTFE_FSTAT = FTFE_FSTAT_CCIF_MASK;
-  return TRUE;
+
+  for (;;)
+      {
+        if (FTFE_FSTAT & FTFE_FSTAT_CCIF_MASK)
+          return TRUE;
+      }
 }
 
 static bool WritePhrase(const uint32_t address, const uint64_t phrase)

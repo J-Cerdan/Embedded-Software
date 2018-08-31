@@ -3,7 +3,7 @@
   <Header>
     <Name>es18spr05.new</Name>
     <SavedBy>PMcL</SavedBy>
-    <ModificationStamp>17</ModificationStamp>
+    <ModificationStamp>16</ModificationStamp>
     <Date>2015-07-20</Date>
     <IDE>Eclipse IDE</IDE>
     <PEversion>1.12.0.RT7_b1515-0427</PEversion>
@@ -19953,7 +19953,7 @@
       </ItemState>
       <ItemState>
         <ItemSymbol>SystemOSC1ExtalPin</ItemSymbol>
-        <Value />
+        <Value>ADC0_SE17/EXTAL1/PTE24/CAN1_TX/UART4_TX/I2S1_TX_FS/GLCD_D13/EWM_OUT_b/I2S1_RXD1</Value>
         <SharedPrphMode>false</SharedPrphMode>
       </ItemState>
       <ItemState>
@@ -19970,7 +19970,7 @@
       </ItemState>
       <ItemState>
         <ItemSymbol>SystemOSC1XtalPin</ItemSymbol>
-        <Value />
+        <Value>ADC0_SE18/XTAL1/PTE25/CAN1_RX/UART4_RX/I2S1_TX_BCLK/GLCD_D14/EWM_IN/I2S1_TXD1</Value>
         <SharedPrphMode>false</SharedPrphMode>
       </ItemState>
       <ItemState>

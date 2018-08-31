@@ -69,12 +69,28 @@ static const uint8_t MinorTowerVersion = 0x00;
 
 static bool HandleProgramPacket(void)
 {
-  return TRUE;
+  uint32_t address = FLASH_DATA_START;
+
+  if (Packet_Parameter1 < 0x09 && Packet_Parameter2 == 0x00)
+    {
+      if (Packet_Parameter1 == 0x08)
+	return Flash_Erase();
+      else
+	return Flash_Write8((uint8_t*)(address + Packet_Parameter1), Packet_Parameter3);
+    }
+
+  return FALSE;
 }
 
 static bool HandleReadPacket(void)
 {
-  return TRUE;
+  uint32_t address = FLASH_DATA_START;
+  if (Packet_Parameter1 < 0x08 && Packet_Parameter2 == 0x00 && Packet_Parameter3 == 0x00)
+    {
+      return Packet_Put(0x08, Packet_Parameter1, Packet_Parameter2, _FB(address + Packet_Parameter1));
+    }
+
+  return FALSE;
 }
 
 /*! @brief Handles the "Version number" request packet
@@ -82,9 +98,12 @@ static bool HandleReadPacket(void)
  *  @param None.
  *  @return bool - TRUE if the packet was placed in the FIFO successfully
  */
-static bool HandleVersionPacket(void)
+static bool HandleVersionPacket(bool startUp)
 {
-  return Packet_Put(0x09, 0x76, MajorTowerVersion, MinorTowerVersion);
+  if (startUp == TRUE || (Packet_Parameter1 == 0x76 && Packet_Parameter2 == 0x78 && Packet_Parameter3 == 0x0D))
+    return Packet_Put(0x09, 0x76, MajorTowerVersion, MinorTowerVersion);
+
+  return FALSE;
 }
 
 /*! @brief Handles the "Tower number" request packet
@@ -92,32 +111,31 @@ static bool HandleVersionPacket(void)
  *  @param No param required.
  *  @return bool - TRUE if the packet was placed in the FIFO successfully
  */
-static bool HandleNumberPacket(void)
+static bool HandleNumberPacket(bool startUp)
 {
   //if statement determines if this is a 'set' command to set a new Tower number
-  //if (Packet_Parameter1 >= 0x01 && Packet_Parameter1 <=0x02)
-
+  if ((Packet_Parameter1 > 0x00 && Packet_Parameter1 < 0x03) || startUp == TRUE)
+    {
       if (Packet_Parameter1 == 0x02)
-      {
-	Flash_Write16((uint16_t*)NvTowerNb, Packet_Parameter23);
-      }
-      return Packet_Put(0x0B, 0x01, (*NvTowerNb).s.Lo, (*NvTowerNb).s.Hi);
-
-  //return FALSE;
+	return Flash_Write16((uint16_t*)NvTowerNb, Packet_Parameter23);
+      else if (!(Packet_Parameter2 || Packet_Parameter3))
+	return Packet_Put(0x0B, 0x01, (*NvTowerNb).s.Lo, (*NvTowerNb).s.Hi);
+    }
+  return FALSE;
 }
 
-static bool HandleModePacket(void)
+static bool HandleModePacket(bool startUp)
 {
   //if statement determines if this is a 'set' command to set a new Tower number
-  //if (Packet_Parameter1 >= 0x01 && Packet_Parameter1 <=0x02)
+  if ((Packet_Parameter1 > 0x00 && Packet_Parameter1 < 0x03) || startUp == TRUE)
+    {
+      if (Packet_Parameter1 == 0x02)
+        return Flash_Write16((uint16_t*)NvTowerMd, Packet_Parameter23);
+      else if (!(Packet_Parameter2 || Packet_Parameter3))
+	return Packet_Put(0x0D, 0x01, (*NvTowerMd).s.Lo, (*NvTowerMd).s.Hi);
+    }
 
-     if (Packet_Parameter1 == 0x02)
-      {
-	Flash_Write16((uint16_t*)NvTowerMd, Packet_Parameter23);
-      }
-      return Packet_Put(0x0D, 0x01, (*NvTowerMd).s.Lo, (*NvTowerMd).s.Hi);
-
-  //return FALSE;
+  return FALSE;
 }
 
 /*! @brief Handles the "Special" request packet
@@ -125,11 +143,17 @@ static bool HandleModePacket(void)
  *  @param None.
  *  @return bool - TRUE if all the functions that were called were successful
  */
-static bool HandleSpecialPacket(void)
+static bool HandleSpecialPacket(bool startUp)
 {
   //calls to send all three packets to PC
-  return Packet_Put(0x04, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3) && HandleVersionPacket() && HandleModePacket();
-	 //HandleNumberPacket();
+ if (!(Packet_Parameter1 || Packet_Parameter2 || Packet_Parameter3))
+   {
+      return Packet_Put(0x04, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3) &&
+	     HandleVersionPacket(startUp) &&
+	     HandleNumberPacket(startUp) &&
+	     HandleModePacket(startUp);
+   }
+ return FALSE;
 }
 
 /*! @brief Handles the packets that comes from the PC and determines what to do
@@ -145,7 +169,7 @@ static void HandlePacket(void)
   switch (Packet_Command & ~PACKET_ACK_MASK)
   {
     case (PACKET_SPECIAL):
-	success = HandleSpecialPacket();
+	success = HandleSpecialPacket(TRUE);
     break;
 
     case (PACKET_PROGRAM_BYTE):
@@ -157,15 +181,15 @@ static void HandlePacket(void)
     break;
 
     case (PACKET_VERSION):
-	success = HandleVersionPacket();
+	success = HandleVersionPacket(FALSE);
     break;
 
     case (PACKET_NUMBER):
-	success = HandleNumberPacket();
+	success = HandleNumberPacket(FALSE);
     break;
 
     case (PACKET_TOWER_MODE):
-	success = HandleModePacket();
+	success = HandleModePacket(FALSE);
     break;
 
 
@@ -214,7 +238,7 @@ int main(void)
     }
 
   //sends the initial packets when the tower starts up
-  HandleSpecialPacket();
+  HandleSpecialPacket(TRUE);
 
 
   for (;;)
