@@ -205,6 +205,26 @@ static void HandlePacket(void)
 
 }
 
+/*! @brief Allocates space in the flash for Tower Number and Mode then writes data to the flash
+ *
+ *  @param None.
+ *  @return None.
+ */
+static void TowerNumberModeInit(void)
+{
+  uint16_t towerNumber = 6702;
+  uint16_t towerMode = 1;
+
+  if (Flash_AllocateVar((volatile void **)&NvTowerNb, sizeof(*NvTowerNb)) &&
+      Flash_AllocateVar((volatile void **)&NvTowerMd, sizeof(*NvTowerMd)))
+    {
+      if ((*NvTowerNb).l == 0xffff)
+	Flash_Write16((uint16_t*)NvTowerNb, towerNumber);
+
+      if ((*NvTowerMd).l == 0xffff)
+	Flash_Write16((uint16_t*)NvTowerMd, towerMode);
+    }
+}
 
 
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
@@ -224,18 +244,7 @@ int main(void)
   if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init())
     LEDs_On(LED_ORANGE);
 
-  uint16_t towerNumber = 6702;
-  uint16_t towerMode = 1;
-
-  if (Flash_AllocateVar((volatile void **)&NvTowerNb, sizeof(*NvTowerNb)) &&
-      Flash_AllocateVar((volatile void **)&NvTowerMd, sizeof(*NvTowerMd)))
-    {
-      if ((*NvTowerNb).l == 0xffff)
-	Flash_Write16((uint16_t*)NvTowerNb, towerNumber);
-
-      if ((*NvTowerMd).l == 0xffff)
-	Flash_Write16((uint16_t*)NvTowerMd, towerMode);
-    }
+  TowerNumberModeInit();
 
   //sends the initial packets when the tower starts up
   HandleSpecialPacket(TRUE);

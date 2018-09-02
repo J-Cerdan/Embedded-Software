@@ -89,10 +89,10 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
     case 1:
       for (uint32_t start = FLASH_DATA_START; start <= FLASH_DATA_END; start++)
 	{
-	  if (!(AddressAllocationStorage & allocationCheck))
+	  if (!(addressAllocationStorage & allocationCheck))
 	    {
 	      *variable = (void**) start;
-	      AddressAllocationStorage |= allocationCheck;
+	      addressAllocationStorage |= allocationCheck;
 	      return TRUE;
 	    }
 	  allocationCheck <<= 1;
@@ -102,10 +102,10 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
     case 2:
       for (uint32_t start = FLASH_DATA_START; start <= FLASH_DATA_END; start += 2)
       	{
-      	  if (!((AddressAllocationStorage & allocationCheck) || (AddressAllocationStorage & (allocationCheck << 1))))
+      	  if (!((addressAllocationStorage & allocationCheck) || (addressAllocationStorage & (allocationCheck << 1))))
       	    {
       	      *variable = (void**) start;
-      	      AddressAllocationStorage |= allocationCheck | (allocationCheck << 1);
+      	      addressAllocationStorage |= allocationCheck | (allocationCheck << 1);
       	      return TRUE;
       	    }
       	  allocationCheck <<= 2;
@@ -117,7 +117,7 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
       	{
 	  for (uint32_t i = start; i < start + 3; i++)
 	    {
-	      if (AddressAllocationStorage & allocationCheck)
+	      if (addressAllocationStorage & allocationCheck)
 		{
 		  allocationCheck = 16;
 		  break;
@@ -128,7 +128,7 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
 	  if (allocationCheck == 8 || allocationCheck == 128)
 	    {
 	      *variable = (void**) start;
-	      AddressAllocationStorage |= allocationCheck | (allocationCheck >> 1) | (allocationCheck >> 2) | (allocationCheck >> 3);
+	      addressAllocationStorage |= allocationCheck | (allocationCheck >> 1) | (allocationCheck >> 2) | (allocationCheck >> 3);
 	      return TRUE;
 	    }
       	}

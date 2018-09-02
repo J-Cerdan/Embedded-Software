@@ -7,9 +7,18 @@
  *  @author Amir Hussein & Joseph Cerdan
  *  @date 2015-08-15
  */
+/*!
+**  @addtogroup LEDs_module packet module documentation
+**  @{
+*/
 
 // new types
+//includes the function prototypes to be implemented here and any public variables or constants
 #include "LEDs.h"
+//This header file implements peripheral memory map for MK70F1 processor.
+#include "MK70F12.h"
+//provides useful definitions
+#include "PE_types.h"
 
 /*! @brief LED to pin mapping on the TWR-K70F120M
  *
@@ -42,7 +51,7 @@ bool LEDs_Init(void)
   GPIOA_PTOR &= GPIO_PTOR_PTTO_SHIFT;
   GPIOA_PDDR &= GPIO_PDDR_PDD_SHIFT;
 
-  return 1;
+  return TRUE;
 }
 
 /*! @brief Turns an LED on.
@@ -72,7 +81,7 @@ void LEDs_Off(const TLED color)
  */
 void LEDs_Toggle(const TLED color)
 {
-  GPIOA_PTOR |= GPIO_PTOR_PTTO(color);
+  GPIOA_PDDR |= GPIO_PTOR_PTTO(color);
 }
 
 
