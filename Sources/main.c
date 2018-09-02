@@ -108,10 +108,10 @@ static bool HandleReadPacket(void)
  *  @param None.
  *  @return bool - TRUE if the packet was placed in the FIFO successfully
  */
-static bool HandleVersionPacket(bool startUp)
+static bool HandleVersionPacket(bool specialPacket)
 {
   //Ensures incoming packet is valid
-  if (startUp == TRUE || (Packet_Parameter1 == 0x76 && Packet_Parameter2 == 0x78 && Packet_Parameter3 == 0x0D))
+  if (specialPacket == TRUE || (Packet_Parameter1 == 0x76 && Packet_Parameter2 == 0x78 && Packet_Parameter3 == 0x0D))
     return Packet_Put(0x09, 0x76, MajorTowerVersion, MinorTowerVersion);
 
   return FALSE;
@@ -122,10 +122,10 @@ static bool HandleVersionPacket(bool startUp)
  *  @param No param required.
  *  @return bool - TRUE if the packet was placed in or read from the flash successfully
  */
-static bool HandleNumberPacket(bool startUp)
+static bool HandleNumberPacket(bool specialPacket)
 {
   //if statement determines if this is a 'set' command to set a new Tower number
-  if ((Packet_Parameter1 > 0x00 && Packet_Parameter1 < 0x03) || startUp == TRUE)
+  if ((Packet_Parameter1 > 0x00 && Packet_Parameter1 < 0x03) || specialPacket == TRUE)
     {
       if (Packet_Parameter1 == 0x02)
 	return Flash_Write16((uint16_t*)NvTowerNb, Packet_Parameter23);
@@ -140,10 +140,10 @@ static bool HandleNumberPacket(bool startUp)
  *  @param startUp - Identifies if the program is currently in a startUp state
  *  @return bool - TRUE if the packet was written to or read from the flash successfully
  */
-static bool HandleModePacket(bool startUp)
+static bool HandleModePacket(bool specialPacket)
 {
   //if statement determines if this is a 'set' command to set a new Tower number
-  if ((Packet_Parameter1 > 0x00 && Packet_Parameter1 < 0x03) || startUp == TRUE)
+  if ((Packet_Parameter1 > 0x00 && Packet_Parameter1 < 0x03) || specialPacket == TRUE)
     {
       if (Packet_Parameter1 == 0x02)
         return Flash_Write16((uint16_t*)NvTowerMd, Packet_Parameter23);
@@ -159,16 +159,23 @@ static bool HandleModePacket(bool startUp)
  *  @param None.
  *  @return bool - TRUE if all the functions that were called were successful
  */
-static bool HandleSpecialPacket(void)
+static bool HandleSpecialPacket(bool startUp)
 {
-  bool startUp = TRUE;
+  bool specialPacket = TRUE;
+  if (startUp == TRUE)
+    {
+      return Packet_Put(0x04, 0x00, 0x00, 0x00) &&
+	     HandleVersionPacket(specialPacket) &&
+	     HandleNumberPacket(specialPacket) &&
+	     HandleModePacket(specialPacket);
+    }
   //calls to send all three packets to PC
- if (!(Packet_Parameter1 || Packet_Parameter2 || Packet_Parameter3))
+  else if (!(Packet_Parameter1 || Packet_Parameter2 || Packet_Parameter3))
    {
       return Packet_Put(0x04, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3) &&
-	     HandleVersionPacket(startUp) &&
-	     HandleNumberPacket(startUp) &&
-	     HandleModePacket(startUp);
+	     HandleVersionPacket(specialPacket) &&
+	     HandleNumberPacket(specialPacket) &&
+	     HandleModePacket(specialPacket);
    }
  return FALSE;
 }
@@ -186,7 +193,7 @@ static void HandlePacket(void)
   switch (Packet_Command & ~PACKET_ACK_MASK)
   {
     case (PACKET_SPECIAL):
-	success = HandleSpecialPacket();
+	success = HandleSpecialPacket(FALSE);
     break;
 
     case (PACKET_PROGRAM_BYTE):
@@ -222,10 +229,10 @@ static void HandlePacket(void)
 
 }
 
-/*! @brief Allocates space in the flash for Tower Number and Mode then writes data to the flash
+/*! @brief Allocates space in the flash for Tower Number and Mode then writes data to the flash if required
  *
- *  @param None.
- *  @return None.
+ *  @param void
+ *  @return void
  */
 static void TowerNumberModeInit(void)
 {
@@ -235,10 +242,10 @@ static void TowerNumberModeInit(void)
   if (Flash_AllocateVar((volatile void **)&NvTowerNb, sizeof(*NvTowerNb)) &&
       Flash_AllocateVar((volatile void **)&NvTowerMd, sizeof(*NvTowerMd)))
     {
-      if ((*NvTowerNb).l == 0xffff)
+      if ((*NvTowerNb).l == 0xffff) //writes the tower number in the flash if nothing is there
 	Flash_Write16((uint16_t*)NvTowerNb, towerNumber);
 
-      if ((*NvTowerMd).l == 0xffff)
+      if ((*NvTowerMd).l == 0xffff) //writes the tower mode in the flash if nothing is there
 	Flash_Write16((uint16_t*)NvTowerMd, towerMode);
     }
 }
@@ -261,10 +268,11 @@ int main(void)
   if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init())
     LEDs_On(LED_ORANGE);
 
+  //handles the initialization tower number and mode in the flash
   TowerNumberModeInit();
 
   //sends the initial packets when the tower starts up
-  HandleSpecialPacket();
+  HandleSpecialPacket(TRUE);
 
 
   for (;;)

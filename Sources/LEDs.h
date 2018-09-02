@@ -58,3 +58,7 @@ void LEDs_Off(const TLED color);
 void LEDs_Toggle(const TLED color);
 
 #endif
+
+/*!
+** @}
+*/

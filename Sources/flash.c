@@ -16,10 +16,8 @@
 #include "MK70F12.h"
 #include "PE_types.h"
 
-
 //max amount of data to store in TFCCOB
 #define FCCOB_MAX_DATA 8
-
 
 
 typedef struct
@@ -67,7 +65,7 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
  // will assign an address to 'variable' depending on 'size'
   switch (size)
   {
-    //checks each available address one by one until one is available
+    //checks each available address one by one until one is available. FALSE if non is available
     case 1:
       for (uint32_t start = FLASH_DATA_START; start <= FLASH_DATA_END; start++)
 	{
@@ -82,6 +80,7 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
       break;
 
     //Checks each even address whether it has been assigned and if not, it will check the address right after to see if it is assigned
+    //FALSE if non is available
     case 2:
       for (uint32_t start = FLASH_DATA_START; start <= FLASH_DATA_END; start += 2)
       	{
@@ -95,7 +94,7 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
       	}
       break;
 
-    //Checks each address divisible by 4, and the 3 addresses that comes after it if they are assigned
+    //Checks each address divisible by 4, and the 3 addresses that comes after it if they are assigned. FALSE if non is available
     case 4:
       for (uint32_t start = FLASH_DATA_START; start <= FLASH_DATA_END; start += 4)
       	{
@@ -174,7 +173,7 @@ bool Flash_Write8(volatile uint8_t* const address, const uint8_t data)
       uint16union_t addressPosition;
       uint32_t temp = (uint32_t)address;
       // Reads the whole 16 bits into a temporary variable.
-      addressPosition.l = _FB(temp & ~0x01);
+      addressPosition.l = _FH(temp & ~0x01);
 
       //Writes in 8 bits to the high or low part of the temp variable depending on the address
       if ((uint32_t) address % 2)
@@ -197,7 +196,7 @@ bool Flash_Erase(void)
 /*! @brief Calls the relevant functions to modify the flash.
  *
  *  @param address The address of the flash sector.
- *  @param data The 64-bit phrase of data to write to the sector of flash.
+ *  @param phrase The 64-bit phrase of data to write to the sector of flash.
  *  @return bool - TRUE if Flash was written successfully, FALSE if there is a programming error.
  *  @note Assumes Flash has been initialized.
  */
@@ -227,7 +226,7 @@ static bool EraseSector(void)
 
 /*! @brief Executes a command to do something to the flash
  *
- *  @param pointer to a TFCCOB variable with all information required to load the CCOB registers
+ *  @param commonCommandObject to a TFCCOB variable with all information required to load the CCOB registers
  *  @return bool - TRUE if command was successfully executed
  *  @note Assumes Flash has been initialized.
  */
@@ -240,8 +239,10 @@ static bool LaunchCommand(const TFCCOB* commonCommandObject)
     }
 
   //Turns off the Flash Access Error Flag and Flash Protection Violation Flag by writing 1
-  FTFE_FSTAT |= FTFE_FSTAT_ACCERR_MASK;
-  FTFE_FSTAT |= FTFE_FSTAT_FPVIOL_MASK;
+  if (FTFE_FSTAT & FTFE_FSTAT_ACCERR_MASK)
+    FTFE_FSTAT |= FTFE_FSTAT_ACCERR_MASK;
+  if (FTFE_FSTAT & FTFE_FSTAT_FPVIOL_MASK)
+    FTFE_FSTAT |= FTFE_FSTAT_FPVIOL_MASK;
 
   //load command in register
   FTFE_FCCOB0 = commonCommandObject->command;
@@ -303,7 +304,7 @@ static bool LoadAddress(uint32_t address, TFCCOB* commonCommandObject)
 
 /*! @brief Loads the data into the TFCCOB variable
  *
- *  @param address integer value of the sector address
+ *  @param data to be loaded in the TFCCOB variable
  *  @param commonCommandObject pointer of a TFCCOB variable to store the data
  *  @return bool - TRUE if the data was loaded in TFCCOB variable
  */
