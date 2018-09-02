@@ -5,7 +5,7 @@
  *  This contains the functions needed for accessing the internal Flash.
  *
  *  @author PMcL
- *  @date 2015-08-07
+ *  @date 2018-09-2
  */
 /*!
 **  @addtogroup Flash_module Flash module documentation

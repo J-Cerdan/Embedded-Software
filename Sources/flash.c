@@ -302,11 +302,11 @@ static bool LoadAddress(uint32_t address, TFCCOB* commonCommandObject)
   return TRUE;
 }
 
-/*! @brief Loads the data into the TFCCOB variable
+/*! @brief Loads the data into the TFCCOB variable.
  *
- *  @param data to be loaded in the TFCCOB variable
- *  @param commonCommandObject pointer of a TFCCOB variable to store the data
- *  @return bool - TRUE if the data was loaded in TFCCOB variable
+ *  @param data to be loaded in the TFCCOB variable.
+ *  @param commonCommandObject pointer of a TFCCOB variable to store the data.
+ *  @return bool - TRUE if the data was loaded in TFCCOB variable.
  */
 static bool LoadData(TFCCOB* commonCommandObject, const uint64_t data)
 {

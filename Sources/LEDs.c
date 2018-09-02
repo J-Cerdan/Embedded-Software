@@ -5,7 +5,7 @@
  *  This contains the functions for operating the LEDs.
  *
  *  @author Amir Hussein & Joseph Cerdan
- *  @date 2015-08-15
+ *  @date 2018-09-02
  */
 /*!
 **  @addtogroup LEDs_module packet module documentation

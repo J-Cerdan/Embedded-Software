@@ -187,7 +187,7 @@ static bool HandleSpecialPacket(bool startUp)
  */
 static void HandlePacket(void)
 {
-  uint8_t success; //used to store whether the tower executed the all the requests successfully
+  uint8_t success; //used to store whether the tower executed all the requests successfully
 
   //handles the requests packets coming from the PC
   switch (Packet_Command & ~PACKET_ACK_MASK)
