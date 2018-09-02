@@ -7,117 +7,101 @@
  *  @author Amir and Joseph
  *  @date 2018-08-16
  */
-
-// new types
+/*!
+**  @addtogroup Flash_module Flash module documentation
+**  @{
+*/
+// header files used
 #include "Flash.h"
 #include "MK70F12.h"
 #include "PE_types.h"
 
 
-/*
- * 0x0008_0000
- * 0x0008_0001
- * 0x0008_0002
- * 0x0008_0003
- * 0x0008_0004
- * 0x0008_0005
- * 0x0008_0006
- * 0x0008_0007
- */
-
+//max amount of data to store in TFCCOB
 #define FCCOB_MAX_DATA 8
 
 
 
 typedef struct
 {
-  uint8_t command;
+  uint8_t command;      /*!< The command. */
 
   struct
   {
-    uint8_t address1,
-    	    address2,
-	    address3;
+    uint8_t address1,   /*!< Portion of the address. The most significant bytes of the address. */
+    	    address2,   /*!< Portion of the address. */
+	    address3;   /*!< Portion of the address. The least significant bytes of the address */
   } address;
 
-  uint8_t data[FCCOB_MAX_DATA];
+  uint8_t data[FCCOB_MAX_DATA]; /*!< Array of the entire 64-bits of data. */
 
 } TFCCOB;
 
+/*************************function prototypes***************************/
 static bool LaunchCommand(const TFCCOB* commonCommandObject);
 
 static bool EraseSector(void);
 
 static bool WritePhrase(const uint32_t address, const uint64_t phrase);
 
-static bool ModifyPhrase(const uint32_t address, const uint64union_t phrase);
+static bool ModifyPhrase(const uint32_t address, const uint64_t phrase);
 
 static bool LoadData(TFCCOB* commonCommandObject, const uint64_t data);
 
 static bool LoadAddress(uint32_t address, TFCCOB* commonCommandObject);
+/***********************************************************************/
 
-
-/*! @brief Enables the Flash module.
- *
- *  @return bool - TRUE if the Flash was setup successfully.
- */
 bool Flash_Init(void)
 {
   return TRUE;
 }
 
-/*! @brief Allocates space for a non-volatile variable in the Flash memory.
- *
- *  @param variable is the address of a pointer to a variable that is to be allocated space in Flash memory.
- *         The pointer will be allocated to a relevant address:
- *         If the variable is a byte, then any address.
- *         If the variable is a half-word, then an even address.
- *         If the variable is a word, then an address divisible by 4.
- *         This allows the resulting variable to be used with the relevant Flash_Write function which assumes a certain memory address.
- *         e.g. a 16-bit variable will be on an even address
- *  @param size The size, in bytes, of the variable that is to be allocated space in the Flash memory. Valid values are 1, 2 and 4.
- *  @return bool - TRUE if the variable was allocated space in the Flash memory.
- *  @note Assumes Flash has been initialized.
- */
+
 bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
 {
+  //stores allocated address as a '1' and available address as '0'
   static uint8_t addressAllocationStorage = 0;
+  // bit shifted to check each bit of addressAllocationStorage
   uint8_t allocationCheck = 1;
 
+ // will assign an address to 'variable' depending on 'size'
   switch (size)
   {
+    //checks each available address one by one until one is available
     case 1:
       for (uint32_t start = FLASH_DATA_START; start <= FLASH_DATA_END; start++)
 	{
-	  if (!(AddressAllocationStorage & allocationCheck))
+	  if (!(addressAllocationStorage & allocationCheck))
 	    {
 	      *variable = (void**) start;
-	      AddressAllocationStorage |= allocationCheck;
+	      addressAllocationStorage |= allocationCheck;
 	      return TRUE;
 	    }
 	  allocationCheck <<= 1;
 	}
       break;
 
+    //Checks each even address whether it has been assigned and if not, it will check the address right after to see if it is assigned
     case 2:
       for (uint32_t start = FLASH_DATA_START; start <= FLASH_DATA_END; start += 2)
       	{
-      	  if (!((AddressAllocationStorage & allocationCheck) || (AddressAllocationStorage & (allocationCheck << 1))))
+      	  if (!((addressAllocationStorage & allocationCheck) || (addressAllocationStorage & (allocationCheck << 1))))
       	    {
       	      *variable = (void**) start;
-      	      AddressAllocationStorage |= allocationCheck | (allocationCheck << 1);
+      	      addressAllocationStorage |= allocationCheck | (allocationCheck << 1);
       	      return TRUE;
       	    }
       	  allocationCheck <<= 2;
       	}
       break;
 
+    //Checks each address divisible by 4, and the 3 addresses that comes after it if they are assigned
     case 4:
       for (uint32_t start = FLASH_DATA_START; start <= FLASH_DATA_END; start += 4)
       	{
 	  for (uint32_t i = start; i < start + 3; i++)
 	    {
-	      if (AddressAllocationStorage & allocationCheck)
+	      if (addressAllocationStorage & allocationCheck)
 		{
 		  allocationCheck = 16;
 		  break;
@@ -128,7 +112,7 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
 	  if (allocationCheck == 8 || allocationCheck == 128)
 	    {
 	      *variable = (void**) start;
-	      AddressAllocationStorage |= allocationCheck | (allocationCheck >> 1) | (allocationCheck >> 2) | (allocationCheck >> 3);
+	      addressAllocationStorage |= allocationCheck | (allocationCheck >> 1) | (allocationCheck >> 2) | (allocationCheck >> 3);
 	      return TRUE;
 	    }
       	}
@@ -138,126 +122,126 @@ bool Flash_AllocateVar(volatile void** variable, const uint8_t size)
   return FALSE;
 }
 
-/*! @brief Writes a 32-bit number to Flash.
- *
- *  @param address The address of the data.
- *  @param data The 32-bit data to write.
- *  @return bool - TRUE if Flash was written successfully, FALSE if address is not aligned to a 4-byte boundary or if there is a programming error.
- *  @note Assumes Flash has been initialized.
- */
+
 bool Flash_Write32(volatile uint32_t* const address, const uint32_t data)
 {
   if ((uint32_t)address >= FLASH_DATA_START && (uint32_t)address <= FLASH_DATA_END && !((uint32_t)address % 4))
     {
-      // First read the whole 64 bits into a temporary variable.
       uint64union_t addressPosition;
       uint32_t temp = (uint32_t)address;
+      // Reads the whole 64 bits into a temporary variable.
       addressPosition.l = _FP(temp & ~0x0F);
 
-      // Then write in your 32 bits to the high or low part of the temp variable
+      //Writes in 32 bits to the high or low part of the temp variable depending on the address
       if(((uint32_t) address / 4) % 2)
 	addressPosition.s.Hi = data;
       else
 	addressPosition.s.Lo = data;
 
-	// Then call flash write 64, passing in the temp variable
-	return ModifyPhrase((temp & ~0x0F), addressPosition);
+	//Calls ModifyPhrase, passing in the temp variable to write to the flash
+	return ModifyPhrase((temp & ~0x0F), addressPosition.l);
     }
   return FALSE;
 }
 
-/*! @brief Writes a 16-bit number to Flash.
- *
- *  @param address The address of the data.
- *  @param data The 16-bit data to write.
- *  @return bool - TRUE if Flash was written successfully, FALSE if address is not aligned to a 2-byte boundary or if there is a programming error.
- *  @note Assumes Flash has been initialized.
- */
+
 bool Flash_Write16(volatile uint16_t* const address, const uint16_t data)
 {
   if ((uint32_t)address >= FLASH_DATA_START && (uint32_t)address <= FLASH_DATA_END && !((uint32_t)address % 2))
     {
       uint32_t temp = (uint32_t)address;
       uint32union_t addressPosition;
-
+      // Reads the whole 32 bits into a temporary variable.
       addressPosition.l = _FW(temp & ~0x03);
 
+      //Writes in 16 bits to the high or low part of the temp variable depending on the address
       if(((uint32_t) address / 2) % 2)
 	addressPosition.s.Hi = data;
       else
 	addressPosition.s.Lo = data;
 
+      //sends the 32 bits to Flash_Write32
       return Flash_Write32((uint32_t*)(temp & ~0x03), addressPosition.l);
     }
   return FALSE;
 }
 
-/*! @brief Writes an 8-bit number to Flash.
- *
- *  @param address The address of the data.
- *  @param data The 8-bit data to write.
- *  @return bool - TRUE if Flash was written successfully, FALSE if there is a programming error.
- *  @note Assumes Flash has been initialized.
- */
+
 bool Flash_Write8(volatile uint8_t* const address, const uint8_t data)
 {
   if ((uint32_t)address >= FLASH_DATA_START && (uint32_t)address <= FLASH_DATA_END)
     {
       uint16union_t addressPosition;
       uint32_t temp = (uint32_t)address;
-      addressPosition.l = *(uint8_t*)(temp & ~0x01);
+      // Reads the whole 16 bits into a temporary variable.
+      addressPosition.l = _FB(temp & ~0x01);
 
+      //Writes in 8 bits to the high or low part of the temp variable depending on the address
       if ((uint32_t) address % 2)
 	addressPosition.s.Hi = data;
       else
 	addressPosition.s.Lo = data;
 
+      //sends the 16 bits to Flash_Write32
       return Flash_Write16((uint16_t*)(temp & ~0x01), addressPosition.l);
     }
   return FALSE;
 }
 
-/*! @brief Erases the entire Flash sector.
- *
- *  @return bool - TRUE if the Flash "data" sector was erased successfully.
- *  @note Assumes Flash has been initialized.
- */
+
 bool Flash_Erase(void)
 {
   return EraseSector();
 }
 
-static bool ModifyPhrase(const uint32_t address, const uint64union_t phrase)
+/*! @brief Calls the relevant functions to modify the flash.
+ *
+ *  @param address The address of the flash sector.
+ *  @param data The 64-bit phrase of data to write to the sector of flash.
+ *  @return bool - TRUE if Flash was written successfully, FALSE if there is a programming error.
+ *  @note Assumes Flash has been initialized.
+ */
+static bool ModifyPhrase(const uint32_t address, const uint64_t phrase)
 {
-  if (Flash_Erase())
-    return WritePhrase(address, phrase.l);
+  if (Flash_Erase()) //only writes in the data if the flash was erased successfully
+    return WritePhrase(address, phrase);
 
   return FALSE;
 }
 
+/*! @brief Erases a Sector of the Flash
+ *
+ *  @return bool - TRUE if Flash sector was erased
+ *  @note Assumes Flash has been initialized.
+ */
 static bool EraseSector(void)
 {
   uint32_t address = FLASH_DATA_START;
   TFCCOB fccob;
 
+  //loads the command and address in fccob struct, then calls launch command to execute the steps
   fccob.command = 0x09;
   LoadAddress(address, &fccob);
   return LaunchCommand(&fccob);
 }
 
+/*! @brief Executes a command to do something to the flash
+ *
+ *  @param pointer to a TFCCOB variable with all information required to load the CCOB registers
+ *  @return bool - TRUE if command was successfully executed
+ *  @note Assumes Flash has been initialized.
+ */
 static bool LaunchCommand(const TFCCOB* commonCommandObject)
 {
   for (;;)
     {
-      if (FTFE_FSTAT & FTFE_FSTAT_CCIF_MASK)
+      if (FTFE_FSTAT & FTFE_FSTAT_CCIF_MASK) //check if the previous command is done executing
 	break;
     }
 
-  if (FTFE_FSTAT & FTFE_FSTAT_ACCERR_MASK)
-    FTFE_FSTAT &= ~FTFE_FSTAT_ACCERR_MASK;
-
-  if (FTFE_FSTAT & FTFE_FSTAT_FPVIOL_MASK)
-    FTFE_FSTAT &= ~FTFE_FSTAT_FPVIOL_MASK;
+  //Turns off the Flash Access Error Flag and Flash Protection Violation Flag by writing 1
+  FTFE_FSTAT |= FTFE_FSTAT_ACCERR_MASK;
+  FTFE_FSTAT |= FTFE_FSTAT_FPVIOL_MASK;
 
   //load command in register
   FTFE_FCCOB0 = commonCommandObject->command;
@@ -275,20 +259,27 @@ static bool LaunchCommand(const TFCCOB* commonCommandObject)
   FTFE_FCCOB9 = commonCommandObject->data[6];
   FTFE_FCCOB8 = commonCommandObject->data[7];
 
-  // set ccif bit to 0
+  // set ccif bit to 0 to launch the command
   FTFE_FSTAT = FTFE_FSTAT_CCIF_MASK;
 
   for (;;)
       {
-        if (FTFE_FSTAT & FTFE_FSTAT_CCIF_MASK)
+        if (FTFE_FSTAT & FTFE_FSTAT_CCIF_MASK) //waits for the command execution to complete
           return TRUE;
       }
 }
 
+/*! @brief Writes 64-bits to a sector of the Flash
+ *
+ *  @param address integer value of the sector address
+ *  @param phrase the 64-bits of data to be written to the flash
+ *  @return bool - TRUE if flash was successfully written, FALSE if there was a programming error
+ *  @note Assumes Flash has been initialized.
+ */
 static bool WritePhrase(const uint32_t address, const uint64_t phrase)
 {
   TFCCOB fccob;
-
+  //loading the fccob variable with the command, address and data.
   fccob.command = 0x07;
   LoadAddress(address, &fccob);
   LoadData(&fccob, phrase);
@@ -296,14 +287,26 @@ static bool WritePhrase(const uint32_t address, const uint64_t phrase)
   return LaunchCommand(&fccob);
 }
 
-
+/*! @brief Loads the address into the TFCCOB variable
+ *
+ *  @param address integer value of the sector address
+ *  @param commonCommandObject pointer of a TFCCOB variable to store the address
+ *  @return bool - TRUE if the address was loaded in TFCCOB variable
+ */
 static bool LoadAddress(uint32_t address, TFCCOB* commonCommandObject)
 {
   commonCommandObject->address.address3 = (uint8_t) address;
   commonCommandObject->address.address2 = (uint8_t) (address >> 8);
   commonCommandObject->address.address1 = (uint8_t) (address >> 16);
+  return TRUE;
 }
 
+/*! @brief Loads the data into the TFCCOB variable
+ *
+ *  @param address integer value of the sector address
+ *  @param commonCommandObject pointer of a TFCCOB variable to store the data
+ *  @return bool - TRUE if the data was loaded in TFCCOB variable
+ */
 static bool LoadData(TFCCOB* commonCommandObject, const uint64_t data)
 {
   for (uint8_t i = 0; i < 8; i++)
@@ -314,12 +317,6 @@ static bool LoadData(TFCCOB* commonCommandObject, const uint64_t data)
 }
 
 
-
-
-
-
-
-
-
-
-
+/*!
+** @}
+*/

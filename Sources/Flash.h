@@ -7,7 +7,10 @@
  *  @author PMcL
  *  @date 2015-08-07
  */
-
+/*!
+**  @addtogroup Flash_module Flash module documentation
+**  @{
+*/
 #ifndef FLASH_H
 #define FLASH_H
 
@@ -82,3 +85,7 @@ bool Flash_Erase(void);
 
 
 #endif
+
+/*!
+** @}
+*/

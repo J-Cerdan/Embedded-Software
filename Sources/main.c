@@ -37,7 +37,6 @@
 // CPU module - contains low level hardware initialization routines
 #include "Cpu.h"
 #include "Events.h"
-#include "Events.h"
 //packet module - contains all the public functions to be used in this module
 #include "packet.h"
 //packet module - contains all the public functions to be used n this module
@@ -143,8 +142,9 @@ static bool HandleModePacket(bool startUp)
  *  @param None.
  *  @return bool - TRUE if all the functions that were called were successful
  */
-static bool HandleSpecialPacket(bool startUp)
+static bool HandleSpecialPacket(void)
 {
+  bool startUp = TRUE;
   //calls to send all three packets to PC
  if (!(Packet_Parameter1 || Packet_Parameter2 || Packet_Parameter3))
    {
@@ -169,7 +169,7 @@ static void HandlePacket(void)
   switch (Packet_Command & ~PACKET_ACK_MASK)
   {
     case (PACKET_SPECIAL):
-	success = HandleSpecialPacket(TRUE);
+	success = HandleSpecialPacket();
     break;
 
     case (PACKET_PROGRAM_BYTE):
@@ -238,7 +238,7 @@ int main(void)
     }
 
   //sends the initial packets when the tower starts up
-  HandleSpecialPacket(TRUE);
+  HandleSpecialPacket();
 
 
   for (;;)
