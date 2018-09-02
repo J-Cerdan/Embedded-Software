@@ -7,19 +7,19 @@
  *  @author Amir Hussein & Joseph Cerdan
  *  @date 2015-08-15
  */
+/*!
+**  @addtogroup LEDs_module packet module documentation
+**  @{
+*/
 
 // new types
+//includes the function prototypes to be implemented here and any public variables or constants
 #include "LEDs.h"
+//This header file implements peripheral memory map for MK70F1 processor.
+#include "MK70F12.h"
+//provides useful definitions
+#include "PE_types.h"
 
-/*! @brief LED to pin mapping on the TWR-K70F120M
- *
- */
-
-
-/*! @brief Sets up the LEDs before first use.
- *
- *  @return bool - TRUE if the LEDs were successfully initialized.
- */
 bool LEDs_Init(void)
 {
   //Turn on port A
@@ -42,38 +42,27 @@ bool LEDs_Init(void)
   GPIOA_PTOR &= GPIO_PTOR_PTTO_SHIFT;
   GPIOA_PDDR &= GPIO_PDDR_PDD_SHIFT;
 
-  return 1;
+  return TRUE;
 }
 
-/*! @brief Turns an LED on.
- *
- *  @param color The color of the LED to turn on.
- *  @note Assumes that LEDs_Init has been called.
- */
 void LEDs_On(const TLED color)
 {
   GPIOA_PDDR |= GPIO_PSOR_PTSO(color);
 }
 
-/*! @brief Turns off an LED.
- *
- *  @param color THe color of the LED to turn off.
- *  @note Assumes that LEDs_Init has been called.
- */
 void LEDs_Off(const TLED color)
 {
   GPIOA_PDDR &= ~GPIO_PCOR_PTCO(color);
 }
 
-/*! @brief Toggles an LED.
- *
- *  @param color THe color of the LED to toggle.
- *  @note Assumes that LEDs_Init has been called.
- */
 void LEDs_Toggle(const TLED color)
 {
-  GPIOA_PTOR |= GPIO_PTOR_PTTO(color);
+  GPIOA_PDDR |= GPIO_PTOR_PTTO(color);
 }
+
+/*!
+** @}
+*/
 
 
 
