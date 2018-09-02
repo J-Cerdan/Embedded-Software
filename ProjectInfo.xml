@@ -35,36 +35,49 @@
     <FLASHsize>1M</FLASHsize>
   </PROCESSOR>
   <PATHS>
-    <LinkerCommandFile>Project\Project_Settings\Linker_Files\ProcessorExpert.ld</LinkerCommandFile>
+    <LinkerCommandFile>D:\Embedded\es18spr05.new\Project_Settings\Linker_Files\ProcessorExpert.ld</LinkerCommandFile>
     <IncludePaths>
-      <Path>Project\Static_Code\IO_Map\</Path>
-      <Path>Project\Sources\</Path>
-      <Path>Project\Generated_Code\</Path>
+      <Path>D:\Embedded\es18spr05.new\Static_Code\PDD\</Path>
+      <Path>D:\Embedded\es18spr05.new\Static_Code\IO_Map\</Path>
+      <Path>D:\Embedded\es18spr05.new\Sources\</Path>
+      <Path>D:\Embedded\es18spr05.new\Generated_Code\</Path>
     </IncludePaths>
     <SourceCodePaths>
-      <Path>Project\Generated_Code\</Path>
-      <Path>Project\Project_Settings\Startup_Code\</Path>
-      <Path>Project\Sources\</Path>
+      <Path>D:\Embedded\es18spr05.new\Generated_Code\</Path>
+      <Path>D:\Embedded\es18spr05.new\Project_Settings\Startup_Code\</Path>
+      <Path>D:\Embedded\es18spr05.new\Sources\</Path>
     </SourceCodePaths>
   </PATHS>
   <FILES>
     <GeneratedCs>
-      <PathName>Project\Generated_Code\Cpu.c</PathName>
-      <PathName>Project\Generated_Code\Vectors.c</PathName>
-      <PathName>Project\Project_Settings\Startup_Code\startup.c</PathName>
-      <PathName>Project\Sources\main.c</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Generated_Code\Cpu.c</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Generated_Code\PE_LDD.c</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Generated_Code\Vectors.c</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Project_Settings\Startup_Code\startup.c</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\Events.c</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\FIFO.c</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\LEDs.c</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\Packet.c</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\UART.c</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\flash.c</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\main.c</PathName>
     </GeneratedCs>
     <GeneratedHs>
-      <PathName>Project\Generated_Code\Cpu.h</PathName>
-      <PathName>Project\Generated_Code\IO_Map.h</PathName>
-      <PathName>Project\Generated_Code\PE_Const.h</PathName>
-      <PathName>Project\Generated_Code\PE_Error.h</PathName>
-      <PathName>Project\Generated_Code\PE_Types.h</PathName>
-      <PathName>Project\Sources\FIFO.h</PathName>
-      <PathName>Project\Sources\UART.h</PathName>
-      <PathName>Project\Sources\packet.h</PathName>
-      <PathName>Project\Sources\types.h</PathName>
-      <PathName>Project\Static_Code\IO_Map\MK70F12.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Generated_Code\Cpu.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Generated_Code\IO_Map.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Generated_Code\PE_Const.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Generated_Code\PE_Error.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Generated_Code\PE_LDD.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Generated_Code\PE_Types.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\Events.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\FIFO.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\Flash.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\LEDs.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\UART.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\packet.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Sources\types.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Static_Code\IO_Map\MK70F12.h</PathName>
+      <PathName>D:\Embedded\es18spr05.new\Static_Code\PDD\PDD_Types.h</PathName>
     </GeneratedHs>
   </FILES>
   <OPTIONS>

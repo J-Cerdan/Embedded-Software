@@ -19,14 +19,19 @@
 #include "UART.h"
 
 
-uint8_t Packet_Command,     /*!< The packet's command */
-        Packet_Parameter1,  /*!< The packet's 1st parameter */
-        Packet_Parameter2,  /*!< The packet's 2nd parameter */
-        Packet_Parameter3,  /*!< The packet's 3rd parameter */
-        Packet_Checksum;    /*!< The packet's checksum */
-
 const uint8_t PACKET_ACK_MASK = 0x80; // 1000 0000
 
+TPacket Packet;
+
+/*! @brief Calculates the checksum of the packet through XORing the parameters passed in.
+ *
+ *  @param command Command byte of packet.
+ *  @param parameter1 Parameter 1 byte of packet.
+ *  @param parameter2 Parameter 2 byte of packet.
+ *  @param parameter3 Parameter 3 byte of packet.
+ *  @return uint8_t - Checksum calculation after XOR.
+ */
+static uint8_t CalculateChecksum(uint8_t command, uint8_t parameter1, uint8_t parameter2, uint8_t parameter3);
 
 bool Packet_Init(const uint32_t baudRate, const uint32_t moduleClk)
 {
@@ -88,7 +93,7 @@ bool Packet_Get(void)
 
       //Check if Checksum is equal to the XOR of all preceding packets for synchronization
       case 5:
-    if(Packet_Command ^ Packet_Parameter1 ^ Packet_Parameter2 ^ Packet_Parameter3 == Packet_Checksum)
+    if(CalculateChecksum(Packet_Command, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3) == Packet_Checksum)
         {
           //Reinitalise state variable when packets are synced and ready to be processed by the tower
           state = 0;
@@ -117,11 +122,15 @@ bool Packet_Put(const uint8_t command, const uint8_t parameter1, const uint8_t p
      UART_OutChar(parameter1) &&
      UART_OutChar(parameter2) &&
      UART_OutChar(parameter3) &&
-     UART_OutChar(command ^ parameter1 ^ parameter2 ^ parameter3); //Calculates and stores checksum
+     UART_OutChar(CalculateChecksum(command, parameter1, parameter2, parameter3)); //Calculates and stores checksum
 
 
 }
 
+static uint8_t CalculateChecksum(uint8_t command, uint8_t parameter1, uint8_t parameter2, uint8_t parameter3)
+{
+  return (command ^ parameter1 ^ parameter2 ^ parameter3);
+}
 /*!
 ** @}
 */
