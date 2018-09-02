@@ -65,12 +65,16 @@ static const uint8_t MajorTowerVersion = 0x01;
 static const uint8_t MinorTowerVersion = 0x00;
 
 
-
-
+/*! @brief Handles the "Program" request packet
+ *
+ *  @param None.
+ *  @return bool - TRUE if the packet was written to the flash successfully
+ */
 static bool HandleProgramPacket(void)
 {
   uint32_t address = FLASH_DATA_START;
 
+  //Ensures incoming packet is valid
   if (Packet_Parameter1 < 0x09 && Packet_Parameter2 == 0x00)
     {
       if (Packet_Parameter1 == 0x08)
@@ -82,9 +86,16 @@ static bool HandleProgramPacket(void)
   return FALSE;
 }
 
+/*! @brief Handles the "Read" request packet
+ *
+ *  @param None.
+ *  @return bool - TRUE if the packet was read from the flash successfully
+ */
 static bool HandleReadPacket(void)
 {
   uint32_t address = FLASH_DATA_START;
+
+  //Ensures incoming packet is valid
   if (Packet_Parameter1 < 0x08 && Packet_Parameter2 == 0x00 && Packet_Parameter3 == 0x00)
     {
       return Packet_Put(0x08, Packet_Parameter1, Packet_Parameter2, _FB(address + Packet_Parameter1));
@@ -100,6 +111,7 @@ static bool HandleReadPacket(void)
  */
 static bool HandleVersionPacket(bool startUp)
 {
+  //Ensures incoming packet is valid
   if (startUp == TRUE || (Packet_Parameter1 == 0x76 && Packet_Parameter2 == 0x78 && Packet_Parameter3 == 0x0D))
     return Packet_Put(0x09, 0x76, MajorTowerVersion, MinorTowerVersion);
 
@@ -109,7 +121,7 @@ static bool HandleVersionPacket(bool startUp)
 /*! @brief Handles the "Tower number" request packet
  *
  *  @param No param required.
- *  @return bool - TRUE if the packet was placed in the FIFO successfully
+ *  @return bool - TRUE if the packet was placed in or read from the flash successfully
  */
 static bool HandleNumberPacket(bool startUp)
 {
@@ -124,6 +136,11 @@ static bool HandleNumberPacket(bool startUp)
   return FALSE;
 }
 
+/*! @brief Handles the "Program" request packet
+ *
+ *  @param startUp - Identifies if the program is currently in a startUp state
+ *  @return bool - TRUE if the packet was written to or read from the flash successfully
+ */
 static bool HandleModePacket(bool startUp)
 {
   //if statement determines if this is a 'set' command to set a new Tower number
