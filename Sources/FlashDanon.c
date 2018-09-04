@@ -127,4 +127,4 @@ int main()
 // allocate 0x04, successVar = 1, testPointer = 80004
 // allocate 0x02, successVar = 1, testPointer = 80002
 // allocate 0x01, successVar = 1, testPointer = 80001
-// allocate 0x01, successVar = 0, testPointer = 80001
+// allocate 0x01, successVar = 0, testPointer = untouched

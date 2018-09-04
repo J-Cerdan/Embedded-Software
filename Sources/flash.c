@@ -239,10 +239,11 @@ static bool LaunchCommand(const TFCCOB* commonCommandObject)
     }
 
   //Turns off the Flash Access Error Flag and Flash Protection Violation Flag by writing 1
+  // Write 1 to clear Register
   if (FTFE_FSTAT & FTFE_FSTAT_ACCERR_MASK)
-    FTFE_FSTAT |= FTFE_FSTAT_ACCERR_MASK;
+    FTFE_FSTAT = FTFE_FSTAT_ACCERR_MASK;
   if (FTFE_FSTAT & FTFE_FSTAT_FPVIOL_MASK)
-    FTFE_FSTAT |= FTFE_FSTAT_FPVIOL_MASK;
+    FTFE_FSTAT = FTFE_FSTAT_FPVIOL_MASK;
 
   //load command in register
   FTFE_FCCOB0 = commonCommandObject->command;
@@ -266,6 +267,8 @@ static bool LaunchCommand(const TFCCOB* commonCommandObject)
   for (;;)
       {
         if (FTFE_FSTAT & FTFE_FSTAT_CCIF_MASK) //waits for the command execution to complete
+
+        // should be returning true or false if there was an error
           return TRUE;
       }
 }
