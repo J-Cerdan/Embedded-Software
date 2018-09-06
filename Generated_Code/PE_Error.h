@@ -6,7 +6,11 @@
 **     Component   : PE_Error
 **     Version     : Driver 01.00
 **     Compiler    : GNU C Compiler
+<<<<<<< HEAD
 **     Date/Time   : 2018-08-30, 18:04, # CodeGen: 0
+=======
+**     Date/Time   : 2015-08-17, 00:21, # CodeGen: 0
+>>>>>>> origin/Lab-3-template
 **     Abstract    :
 **         This component "PE_Error" contains internal definitions
 **         of the error constants.

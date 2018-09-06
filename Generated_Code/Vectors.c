@@ -6,7 +6,11 @@
 **     Version     : Component 01.028, Driver 01.04, CPU db: 3.00.000
 **     Repository  : Kinetis
 **     Compiler    : GNU C Compiler
+<<<<<<< HEAD
 **     Date/Time   : 2018-08-30, 18:04, # CodeGen: 0
+=======
+**     Date/Time   : 2015-08-19, 00:40, # CodeGen: 1
+>>>>>>> origin/Lab-3-template
 **     Abstract    :
 **
 **     Settings    :
