@@ -13,6 +13,15 @@
 
 // new types
 #include "RTC.h"
+#include "MK70F12.h"
+#include "PE_Types.h"
+
+static uint8_t Hours = 0, Minutes = 0, Seconds = 0;
+
+//pointer and arguments to user call back function
+void (*CallBack)();
+void* CallBackArgument;
+
 
 /*! @brief Initializes the RTC before first use.
  *
@@ -30,6 +39,11 @@ bool RTC_Init(void (*userFunction)(void*), void* userArguments)
 
   for (int i=0; i<=500000000; i++)
     {/*wait*/}
+
+  RTC_IER |= RTC_IER_TSIE_MASK;
+
+  CallBack = userFunction;
+  CallBackArgument = userArguments;
 }
 
 /*! @brief Sets the value of the real time clock.
@@ -58,7 +72,7 @@ void RTC_Get(uint8_t* const hours, uint8_t* const minutes, uint8_t* const second
  */
 void __attribute__ ((interrupt)) RTC_ISR(void)
 {
-
+  (CallBack)(CallBackArgument);
 }
 
 

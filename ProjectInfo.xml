@@ -35,49 +35,52 @@
     <FLASHsize>1M</FLASHsize>
   </PROCESSOR>
   <PATHS>
-    <LinkerCommandFile>D:\Embedded\es18spr05.new\Project_Settings\Linker_Files\ProcessorExpert.ld</LinkerCommandFile>
+    <LinkerCommandFile>D:\Embedded\Lab3-RTC\Project_Settings\Linker_Files\ProcessorExpert.ld</LinkerCommandFile>
     <IncludePaths>
-      <Path>D:\Embedded\es18spr05.new\Static_Code\PDD\</Path>
-      <Path>D:\Embedded\es18spr05.new\Static_Code\IO_Map\</Path>
-      <Path>D:\Embedded\es18spr05.new\Sources\</Path>
-      <Path>D:\Embedded\es18spr05.new\Generated_Code\</Path>
+      <Path>D:\Embedded\Lab3-RTC\Static_Code\PDD\</Path>
+      <Path>D:\Embedded\Lab3-RTC\Static_Code\IO_Map\</Path>
+      <Path>D:\Embedded\Lab3-RTC\Sources\</Path>
+      <Path>D:\Embedded\Lab3-RTC\Generated_Code\</Path>
     </IncludePaths>
     <SourceCodePaths>
-      <Path>D:\Embedded\es18spr05.new\Generated_Code\</Path>
-      <Path>D:\Embedded\es18spr05.new\Project_Settings\Startup_Code\</Path>
-      <Path>D:\Embedded\es18spr05.new\Sources\</Path>
+      <Path>D:\Embedded\Lab3-RTC\Generated_Code\</Path>
+      <Path>D:\Embedded\Lab3-RTC\Project_Settings\Startup_Code\</Path>
+      <Path>D:\Embedded\Lab3-RTC\Sources\</Path>
     </SourceCodePaths>
   </PATHS>
   <FILES>
     <GeneratedCs>
-      <PathName>D:\Embedded\es18spr05.new\Generated_Code\Cpu.c</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Generated_Code\PE_LDD.c</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Generated_Code\Vectors.c</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Project_Settings\Startup_Code\startup.c</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\Events.c</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\FIFO.c</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\LEDs.c</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\Packet.c</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\UART.c</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\flash.c</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\main.c</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Generated_Code\Cpu.c</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Generated_Code\PE_LDD.c</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Generated_Code\Vectors.c</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Project_Settings\Startup_Code\startup.c</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\Events.c</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\FIFO.c</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\LEDs.c</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\Packet.c</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\RTC.c</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\UART.c</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\flash.c</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\main.c</PathName>
     </GeneratedCs>
     <GeneratedHs>
-      <PathName>D:\Embedded\es18spr05.new\Generated_Code\Cpu.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Generated_Code\IO_Map.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Generated_Code\PE_Const.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Generated_Code\PE_Error.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Generated_Code\PE_LDD.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Generated_Code\PE_Types.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\Events.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\FIFO.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\Flash.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\LEDs.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\UART.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\packet.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Sources\types.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Static_Code\IO_Map\MK70F12.h</PathName>
-      <PathName>D:\Embedded\es18spr05.new\Static_Code\PDD\PDD_Types.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Generated_Code\Cpu.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Generated_Code\IO_Map.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Generated_Code\PE_Const.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Generated_Code\PE_Error.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Generated_Code\PE_LDD.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Generated_Code\PE_Types.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\Events.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\FIFO.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\FTM.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\Flash.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\LEDs.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\PIT.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\RTC.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\UART.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\packet.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Sources\types.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Static_Code\IO_Map\MK70F12.h</PathName>
     </GeneratedHs>
   </FILES>
   <OPTIONS>
