@@ -44,7 +44,7 @@
 #include "Flash.h"
 //LED module - contains all the public functions to be used in this module
 #include "LEDs.h"
-
+#include "RTC.h"
 //macros defined for determining which command protocol has been sent
 #define PACKET_SPECIAL 0x04
 #define PACKET_PROGRAM_BYTE 0x07

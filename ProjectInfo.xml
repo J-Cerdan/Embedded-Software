@@ -81,6 +81,7 @@
       <PathName>D:\Embedded\Lab3-RTC\Sources\packet.h</PathName>
       <PathName>D:\Embedded\Lab3-RTC\Sources\types.h</PathName>
       <PathName>D:\Embedded\Lab3-RTC\Static_Code\IO_Map\MK70F12.h</PathName>
+      <PathName>D:\Embedded\Lab3-RTC\Static_Code\PDD\PDD_Types.h</PathName>
     </GeneratedHs>
   </FILES>
   <OPTIONS>
