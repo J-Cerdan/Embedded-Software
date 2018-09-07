@@ -12,12 +12,11 @@
 **  @{
 */
 
-#ifndef PIT_H
-#define PIT_H
-
 // new types
-#include "types.h"
-
+#include "PIT.h"
+#include "LEDs.h"
+#include "PE_Types.h"
+#include "MK70F12.h"
 
 /*! @brief Sets up the PIT before first use.
  *
@@ -28,7 +27,16 @@
  *  @return bool - TRUE if the PIT was successfully initialized.
  *  @note Assumes that moduleClk has a period which can be expressed as an integral number of nanoseconds.
  */
-bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userArguments);
+bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userArguments)
+{
+
+  PIT_Enable(TRUE);
+
+
+
+
+
+}
 
 /*! @brief Sets the value of the desired period of the PIT.
  *
@@ -37,13 +45,38 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
  *                 FALSE if the PIT will use the new value after a trigger event.
  *  @note The function will enable the timer and interrupts for the PIT.
  */
-void PIT_Set(const uint32_t period, const bool restart);
+void PIT_Set(const uint32_t period, const bool restart)
+{
+  //Set timer start value
+  PIT_LDVAL1 |= PIT_LDVAL_TSV(period - 1);
+
+  //Enable timer
+  PIT_TCTRL1 |= PIT_TCTRL_TEN_MASK;
+
+  // If restart is true, disable then enable timer to restart
+  if (restart)
+    {
+      PIT_TCTRL1 &= ~PIT_TCTRL_TEN_MASK;
+      PIT_TCTRL1 |= PIT_TCTRL_TEN_MASK;
+    }
+
+}
 
 /*! @brief Enables or disables the PIT.
  *
  *  @param enable - TRUE if the PIT is to be enabled, FALSE if the PIT is to be disabled.
  */
-void PIT_Enable(const bool enable);
+void PIT_Enable(const bool enable)
+{
+  if (enable)
+    // Enable PIT Module at MCR = 0
+    PIT_MCR &= ~PIT_MCR_MDIS_MASK;
+
+  else
+    // Disable PIT Module at MCR = 1
+    PIT_MCR |= PIT_MCR_MDIS_MASK;
+
+}
 
 /*! @brief Interrupt service routine for the PIT.
  *
@@ -51,9 +84,10 @@ void PIT_Enable(const bool enable);
  *  The user callback function will be called.
  *  @note Assumes the PIT has been initialized.
  */
-void __attribute__ ((interrupt)) PIT_ISR(void);
-
-#endif
+void __attribute__ ((interrupt)) PIT_ISR(void)
+{
+  LEDs_On(LED_GREEN);
+}
 
 /*!
 ** @}
