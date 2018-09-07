@@ -13,6 +13,8 @@
 
 // new types
 #include "RTC.h"
+#include "PE_Types.h"
+#include "MK70F12.h"
 
 /*! @brief Initializes the RTC before first use.
  *

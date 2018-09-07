@@ -18,6 +18,8 @@
 #include "PE_Types.h"
 #include "MK70F12.h"
 
+static uint32_t ModuleClk;
+
 /*! @brief Sets up the PIT before first use.
  *
  *  Enables the PIT and freezes the timer when debugging.
@@ -32,8 +34,11 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
 
   PIT_Enable(TRUE);
 
+  //Enable timer
+  PIT_TCTRL0 |= PIT_TCTRL_TEN_MASK;
+  PIT_TCTRL0 |= PIT_TCTRL_TIE_MASK;
 
-
+  ModuleClk = moduleClk;
 
 
 }
@@ -47,17 +52,18 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
  */
 void PIT_Set(const uint32_t period, const bool restart)
 {
-  //Set timer start value
-  PIT_LDVAL1 |= PIT_LDVAL_TSV(period - 1);
 
-  //Enable timer
-  PIT_TCTRL1 |= PIT_TCTRL_TEN_MASK;
+  uint32_t clockPeriod;
+  clockPeriod = 1000000000/ModuleClk;
+
+  //Set timer start value
+  PIT_LDVAL0 = ((period/clockPeriod) - 1);
 
   // If restart is true, disable then enable timer to restart
   if (restart)
     {
-      PIT_TCTRL1 &= ~PIT_TCTRL_TEN_MASK;
-      PIT_TCTRL1 |= PIT_TCTRL_TEN_MASK;
+      PIT_TCTRL0 &= ~PIT_TCTRL_TEN_MASK;
+      PIT_TCTRL0 |= PIT_TCTRL_TEN_MASK;
     }
 
 }
@@ -84,10 +90,7 @@ void PIT_Enable(const bool enable)
  *  The user callback function will be called.
  *  @note Assumes the PIT has been initialized.
  */
-void __attribute__ ((interrupt)) PIT_ISR(void)
-{
-  LEDs_On(LED_GREEN);
-}
+void __attribute__ ((interrupt)) PIT_ISR(void);
 
 /*!
 ** @}
