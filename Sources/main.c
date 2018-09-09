@@ -45,6 +45,7 @@
 //LED module - contains all the public functions to be used in this module
 #include "LEDs.h"
 #include "RTC.h"
+
 //macros defined for determining which command protocol has been sent
 #define PACKET_SPECIAL 0x04
 #define PACKET_PROGRAM_BYTE 0x07
@@ -258,6 +259,7 @@ static void TowerNumberModeInit(void)
 int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
+  __DI();
   // stores the tower number as a union to be able to access hi and lo bytes
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
@@ -267,6 +269,9 @@ int main(void)
   if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init())
     LEDs_On(LED_ORANGE);
 
+  uint16_t colour = LED_BLUE;
+  RTC_Init((void*) &LEDs_On, (void*) LED_BLUE);
+  __EI();
   //handles the initialization tower number and mode in the flash
   TowerNumberModeInit();
 

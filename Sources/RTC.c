@@ -14,7 +14,6 @@
 #include "PE_Types.h"
 
 
-static uint8_t Hours = 0, Minutes = 0, Seconds = 0;
 
 //pointer and arguments to user call back function
 void (*CallBack)(void*);
@@ -31,19 +30,28 @@ void* CallBackArgument;
  */
 bool RTC_Init(void (*userFunction)(void*), void* userArguments)
 {
-  if (!(RTC_LR & RTC_LR_CRL_MASK /*&& RTC_LR & RTC_LR_SRL_MASK*/))
-    {
-      //use RTC_SR TCE to enable the counter
+  //enables the RTC module
+  SIM_SCGC6 |= SIM_SCGC6_RTC_MASK;
 
-      //turn off the oscillator before changing the capacitors
-      RTC_CR &= ~RTC_CR_OSCE_MASK;
+  //Checks if the oscillator is on if not will turn it on
+  if (!(RTC_CR & RTC_CR_OSCE_MASK))
+    {
       RTC_CR |= RTC_CR_SC2P_MASK;
       RTC_CR |= RTC_CR_SC16P_MASK;
+      //turns on the oscillator
       RTC_CR |= RTC_CR_OSCE_MASK;
 
-      for (uint8_t i=0; i<=500000000; i++)
-	{/*wait*/}
+      //wait for the oscillator to become stable
+      for (uint32_t i=0; i<=4200000; i++)
+      	{/*wait*/}
+    }
 
+
+  RTC_LR |= RTC_LR_CRL_MASK;
+  if ((RTC_LR & RTC_LR_CRL_MASK /*&& RTC_LR & RTC_LR_SRL_MASK*/))
+    {
+      //use RTC_SR TCE to enable the counter
+      //turns off the invalid time flag
       RTC_SR &= ~RTC_SR_TIF_MASK;
       RTC_SR &= ~RTC_SR_TOF_MASK;
       RTC_SR |= RTC_SR_TCE_MASK;
@@ -54,10 +62,11 @@ bool RTC_Init(void (*userFunction)(void*), void* userArguments)
 
   //LR_CRL and SRL need to be locked
 
+  NVICICER2 |= 0x04;
   RTC_IER |= RTC_IER_TSIE_MASK;
   CallBack = userFunction;
   CallBackArgument = userArguments;
-
+  uint32_t counterTime = RTC_TCR;
   return TRUE;
 }
 
@@ -84,6 +93,19 @@ void RTC_Set(const uint8_t hours, const uint8_t minutes, const uint8_t seconds)
 void RTC_Get(uint8_t* const hours, uint8_t* const minutes, uint8_t* const seconds)
 {
   //read the RTC_TSR
+  uint32_t counterTime = RTC_TCR;
+  if (counterTime != RTC_TCR)
+    {
+      counterTime = RTC_TSR;
+    }
+  *seconds = counterTime % 60;
+  counterTime /= 60;
+
+  *minutes = counterTime % 60;
+  counterTime /= 60;
+
+  *hours = counterTime % 24;
+
 }
 
 /*! @brief Interrupt service routine for the RTC.
@@ -96,7 +118,8 @@ void __attribute__ ((interrupt)) RTC_ISR(void)
 {
   // SR[TOF] or SR[TIF] must both be disabled for the counter to increment
   // when SR[TOF] and SR[TIF] are set, the counter will read 0
-  (CallBack)(CallBackArgument);
+  if (CallBack)
+    (*CallBack)(CallBackArgument);
 }
 
 
