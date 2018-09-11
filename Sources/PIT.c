@@ -21,8 +21,8 @@
 static uint32_t ModuleClk;
 
 //pointer and arguments to user call back function
-void (*CallBack)(void*);
-void* CallBackArgument;
+static void (*CallBack)(void*);
+static void* CallBackArgument;
 
 
 /*! @brief Sets up the PIT before first use.
@@ -42,10 +42,19 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
   //Enable PIT clock gate control
   SIM_SCGC6 |= SIM_SCGC6_PIT_MASK;
 
-  PIT_Enable(TRUE);
+  //W1C before interrupt enable
+  PIT_TFLG0 = PIT_TFLG_TIF_MASK;
 
   //PIT Timer Interrupt Enable
   PIT_TCTRL0 |= PIT_TCTRL_TIE_MASK;
+
+  PIT_Enable(TRUE);
+
+  NVICISER2 |= (1 << (68 % 32));
+  NVICICPR2 |= (1 << (68 % 32));
+
+  CallBack = userFunction;
+  CallBackArgument = userArguments;
 
   return TRUE;
 
@@ -68,7 +77,7 @@ void PIT_Set(const uint32_t period, const bool restart)
   clockPeriod = 1000000000/ModuleClk;
 
   //Set timer start value
-  PIT_LDVAL0 |= PIT_LDVAL_TSV((period/clockPeriod) - 1);
+  PIT_LDVAL0 = ((period/clockPeriod) - 1);
 
   // If restart is true, disable then enable timer to restart
   if (restart)

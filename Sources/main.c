@@ -250,7 +250,7 @@ static void TowerNumberModeInit(void)
     }
 }
 
-void PITCallback()
+void PITCallback(void* arg)
 {
 
   LEDs_Toggle(LED_GREEN);
@@ -266,9 +266,14 @@ void PITCallback()
 int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
+
+
   // stores the tower number as a union to be able to access hi and lo bytes
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
+
+  __DI();
+
   /*** End of Processor Expert internal initialization.                    ***/
   LEDs_Init();
 
@@ -282,7 +287,11 @@ int main(void)
   HandleSpecialPacket(TRUE);
 
   PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL);
+
+  __EI();
+
   PIT_Set(500000000, TRUE);
+
 
   for (;;)
   {
