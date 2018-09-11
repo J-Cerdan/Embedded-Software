@@ -16,8 +16,8 @@
 
 
 //pointer and arguments to user call back function
-void (*CallBack)(void*);
-void* CallBackArgument;
+static void (*CallBack)(void*);
+static void* CallBackArgument;
 
 
 /*! @brief Initializes the RTC before first use.
@@ -33,9 +33,11 @@ bool RTC_Init(void (*userFunction)(void*), void* userArguments)
   //enables the RTC module
   SIM_SCGC6 |= SIM_SCGC6_RTC_MASK;
 
-  //Checks if the oscillator is on if not will turn it on
-  if (!(RTC_CR & RTC_CR_OSCE_MASK))
+  // reset and see if it works.pull it out of reset if it did reset
+  RTC_CR |= RTC_CR_SWR_MASK;
+  if (RTC_CR & RTC_CR_SWR_MASK)
     {
+      RTC_CR &= ~RTC_CR_SWR_MASK;
       RTC_CR |= RTC_CR_SC2P_MASK;
       RTC_CR |= RTC_CR_SC16P_MASK;
       //turns on the oscillator
@@ -44,29 +46,25 @@ bool RTC_Init(void (*userFunction)(void*), void* userArguments)
       //wait for the oscillator to become stable
       for (uint32_t i=0; i<=4200000; i++)
       	{/*wait*/}
+      //lock the registers
+      RTC_LR &= ~RTC_LR_CRL_MASK;
+
+      if (RTC_SR & RTC_SR_TIF_MASK)
+          {
+            RTC_SR &= ~RTC_SR_TCE_MASK;
+            RTC_TSR = 0x000001;
+          }
     }
 
+  NVICISER2 |= (1 << (67 % 32));
+  NVICICPR2 |= (1 << (67 % 32));
 
-  RTC_LR |= RTC_LR_CRL_MASK;
-  if ((RTC_LR & RTC_LR_CRL_MASK /*&& RTC_LR & RTC_LR_SRL_MASK*/))
-    {
-      //use RTC_SR TCE to enable the counter
-      //turns off the invalid time flag
-      RTC_SR &= ~RTC_SR_TIF_MASK;
-      RTC_SR &= ~RTC_SR_TOF_MASK;
-      RTC_SR |= RTC_SR_TCE_MASK;
-
-
-      RTC_LR |= RTC_LR_CRL_MASK;
-    }
-
-  //LR_CRL and SRL need to be locked
-
-  NVICICER2 |= 0x04;
+  RTC_SR |= RTC_SR_TCE_MASK;
   RTC_IER |= RTC_IER_TSIE_MASK;
+
+
   CallBack = userFunction;
   CallBackArgument = userArguments;
-  uint32_t counterTime = RTC_TCR;
   return TRUE;
 }
 

@@ -64,6 +64,12 @@ static const uint8_t MajorTowerVersion = 0x01;
 static const uint8_t MinorTowerVersion = 0x00;
 
 
+
+void RTCCallback (void* arg)
+{
+  LEDs_Toggle(LED_YELLOW);
+}
+
 /*! @brief Handles the "Program" request packet
  *
  *  @param None.
@@ -259,6 +265,7 @@ static void TowerNumberModeInit(void)
 int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
+
   __DI();
   // stores the tower number as a union to be able to access hi and lo bytes
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
@@ -270,7 +277,7 @@ int main(void)
     LEDs_On(LED_ORANGE);
 
   uint16_t colour = LED_BLUE;
-  RTC_Init((void*) &LEDs_On, (void*) LED_BLUE);
+  RTC_Init(RTCCallback, NULL);
   __EI();
   //handles the initialization tower number and mode in the flash
   TowerNumberModeInit();

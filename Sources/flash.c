@@ -264,10 +264,12 @@ static bool LaunchCommand(const TFCCOB* commonCommandObject)
   for (;;)//waits for the command execution to complete
       {
         if (FTFE_FSTAT & FTFE_FSTAT_CCIF_MASK)
-          if (FTFE_FSTAT & FTFE_FSTAT_FPVIOL_MASK || FTFE_FSTAT & FTFE_FSTAT_ACCERR_MASK)
-            return FALSE;
+          {
+	    if (FTFE_FSTAT & FTFE_FSTAT_FPVIOL_MASK || FTFE_FSTAT & FTFE_FSTAT_ACCERR_MASK)
+	      return FALSE;
 
-          return TRUE;
+	    return TRUE;
+          }
       }
 }
 
