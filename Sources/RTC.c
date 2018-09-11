@@ -56,8 +56,9 @@ bool RTC_Init(void (*userFunction)(void*), void* userArguments)
           }
     }
 
-  NVICISER2 |= (1 << (67 % 32));
-  NVICICPR2 |= (1 << (67 % 32));
+
+  NVICISER2 |= NVIC_ICPR_CLRPEND(1 << (67 % 32));
+  NVICICPR2 |= NVIC_ISER_SETENA(1 << (67 % 32));
 
   RTC_SR |= RTC_SR_TCE_MASK;
   RTC_IER |= RTC_IER_TSIE_MASK;
@@ -81,10 +82,7 @@ void RTC_Set(const uint8_t hours, const uint8_t minutes, const uint8_t seconds)
   //Clear the prescaler register before writing to the seconds register.
   uint32_t counterTime;
 
-  if (!(hours & minutes & seconds))
-    counterTime = 86400;
-  else
-    counterTime = (hours * 3600) + (minutes * 60) + seconds;
+  counterTime = (hours * 3600) + (minutes * 60) + seconds;
 
   RTC_SR &= ~RTC_SR_TCE_MASK;
   RTC_TPR = 0x00;
