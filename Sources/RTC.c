@@ -79,6 +79,19 @@ void RTC_Set(const uint8_t hours, const uint8_t minutes, const uint8_t seconds)
 {
   //disbale SR[TCE] before writing
   //Clear the prescaler register before writing to the seconds register.
+  uint32_t counterTime;
+
+  if (!(hours & minutes & seconds))
+    counterTime = 86400;
+  else
+    counterTime = (hours * 3600) + (minutes * 60) + seconds;
+
+  RTC_SR &= ~RTC_SR_TCE_MASK;
+  RTC_TPR = 0x00;
+  RTC_TSR = counterTime;
+
+  RTC_SR |= RTC_SR_TCE_MASK;
+
 }
 
 /*! @brief Gets the value of the real time clock.
@@ -91,8 +104,8 @@ void RTC_Set(const uint8_t hours, const uint8_t minutes, const uint8_t seconds)
 void RTC_Get(uint8_t* const hours, uint8_t* const minutes, uint8_t* const seconds)
 {
   //read the RTC_TSR
-  uint32_t counterTime = RTC_TCR;
-  if (counterTime != RTC_TCR)
+  uint32_t counterTime = RTC_TSR;
+  if (counterTime != RTC_TSR)
     {
       counterTime = RTC_TSR;
     }

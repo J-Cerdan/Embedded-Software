@@ -53,6 +53,7 @@
 #define PACKET_VERSION 0x09
 #define PACKET_NUMBER 0x0B
 #define PACKET_TOWER_MODE 0x0D
+#define PACKET_SET_TIME 0x0C
 
 //global private constant to store the baudRate
 static const uint32_t BaudRate = 115200;
@@ -67,7 +68,11 @@ static const uint8_t MinorTowerVersion = 0x00;
 
 void RTCCallback (void* arg)
 {
+  uint8_t hours = 0, minutes = 0, seconds = 0;\
+  RTC_Get(&hours, &minutes, &seconds);
+  Packet_Put(0x0C, hours, minutes, seconds);
   LEDs_Toggle(LED_YELLOW);
+
 }
 
 /*! @brief Handles the "Program" request packet
@@ -160,6 +165,16 @@ static bool HandleModePacket(bool specialPacket)
   return FALSE;
 }
 
+static bool HandleTimePacket(void)
+{
+  if (Packet_Parameter1 < 24 && Packet_Parameter2 < 60 && Packet_Parameter3 < 60 )
+    {
+      RTC_Set(Packet_Parameter1, Packet_Parameter2, Packet_Parameter3);
+      return TRUE;
+    }
+  return FALSE;
+}
+
 /*! @brief Handles the "Special" request packet
  *
  *  @param None.
@@ -220,6 +235,10 @@ static void HandlePacket(void)
 
     case (PACKET_TOWER_MODE):
 	success = HandleModePacket(FALSE);
+    break;
+
+    case (PACKET_SET_TIME):
+	success = HandleTimePacket();
     break;
 
 
