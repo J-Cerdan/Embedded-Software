@@ -250,6 +250,13 @@ static void TowerNumberModeInit(void)
     }
 }
 
+void PITCallback()
+{
+
+  LEDs_Toggle(LED_GREEN);
+
+}
+
 
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
 /*! @brief main
@@ -274,6 +281,8 @@ int main(void)
   //sends the initial packets when the tower starts up
   HandleSpecialPacket(TRUE);
 
+  PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL);
+  PIT_Set(500000000, TRUE);
 
   for (;;)
   {
