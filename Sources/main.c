@@ -300,19 +300,16 @@ int main(void)
   /*** End of Processor Expert internal initialization.                    ***/
   LEDs_Init();
 
-  LEDs_Off(LED_BLUE);
-  LEDs_On(LED_BLUE);
-  LEDs_Off(LED_BLUE);
 
   if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init())
     LEDs_On(LED_ORANGE);
 
   RTC_Init(RTCCallback, NULL);
   PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL);
+  PIT_Set(500000000, TRUE);
 
   __EI();
 
-  PIT_Set(500000000, TRUE);
 
 
 
