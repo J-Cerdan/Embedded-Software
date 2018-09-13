@@ -30,6 +30,7 @@ static void* CallBackArgument;
  */
 bool RTC_Init(void (*userFunction)(void*), void* userArguments)
 {
+  EnterCritical();
   //enables the RTC module
   SIM_SCGC6 |= SIM_SCGC6_RTC_MASK;
 
@@ -52,7 +53,7 @@ bool RTC_Init(void (*userFunction)(void*), void* userArguments)
       if (RTC_SR & RTC_SR_TIF_MASK)
           {
             RTC_SR &= ~RTC_SR_TCE_MASK;
-            RTC_TSR = 0x000001;
+            RTC_TSR = 0x00;
           }
     }
 
@@ -66,6 +67,7 @@ bool RTC_Init(void (*userFunction)(void*), void* userArguments)
 
   CallBack = userFunction;
   CallBackArgument = userArguments;
+  ExitCritical();
   return TRUE;
 }
 
@@ -80,16 +82,18 @@ void RTC_Set(const uint8_t hours, const uint8_t minutes, const uint8_t seconds)
 {
   //disbale SR[TCE] before writing
   //Clear the prescaler register before writing to the seconds register.
-  uint32_t counterTime;
+  if (hours < 24 && minutes < 60 && seconds < 60 )
+    {
+      uint32_t counterTime;
 
-  counterTime = (hours * 3600) + (minutes * 60) + seconds;
+      counterTime = (hours * 3600) + (minutes * 60) + seconds;
 
-  RTC_SR &= ~RTC_SR_TCE_MASK;
-  RTC_TPR = 0x00;
-  RTC_TSR = counterTime;
+      RTC_SR &= ~RTC_SR_TCE_MASK;
+      RTC_TPR = 0x00;
+      RTC_TSR = counterTime;
 
-  RTC_SR |= RTC_SR_TCE_MASK;
-
+      RTC_SR |= RTC_SR_TCE_MASK;
+    }
 }
 
 /*! @brief Gets the value of the real time clock.
