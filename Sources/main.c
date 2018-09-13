@@ -45,6 +45,8 @@
 //LED module - contains all the public functions to be used in this module
 #include "LEDs.h"
 #include "RTC.h"
+#include "PIT.h"
+
 
 //macros defined for determining which command protocol has been sent
 #define PACKET_SPECIAL 0x04
@@ -275,6 +277,12 @@ static void TowerNumberModeInit(void)
     }
 }
 
+void PITCallback(void* arg)
+{
+
+  LEDs_Toggle(LED_GREEN);
+
+}
 
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
 /*! @brief main
@@ -292,12 +300,22 @@ int main(void)
   /*** End of Processor Expert internal initialization.                    ***/
   LEDs_Init();
 
+  LEDs_Off(LED_BLUE);
+  LEDs_On(LED_BLUE);
+  LEDs_Off(LED_BLUE);
+
   if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init())
     LEDs_On(LED_ORANGE);
 
-  uint16_t colour = LED_BLUE;
   RTC_Init(RTCCallback, NULL);
+  PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL);
+
   __EI();
+
+  PIT_Set(500000000, TRUE);
+
+
+
   //handles the initialization tower number and mode in the flash
   TowerNumberModeInit();
 
