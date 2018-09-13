@@ -44,6 +44,7 @@
 #include "Flash.h"
 //LED module - contains all the public functions to be used in this module
 #include "LEDs.h"
+#include "RTC.h"
 
 //macros defined for determining which command protocol has been sent
 #define PACKET_SPECIAL 0x04
@@ -52,6 +53,7 @@
 #define PACKET_VERSION 0x09
 #define PACKET_NUMBER 0x0B
 #define PACKET_TOWER_MODE 0x0D
+#define PACKET_SET_TIME 0x0C
 
 //global private constant to store the baudRate
 static const uint32_t BaudRate = 115200;
@@ -62,6 +64,16 @@ volatile uint16union_t *NvTowerMd;
 static const uint8_t MajorTowerVersion = 0x01;
 static const uint8_t MinorTowerVersion = 0x00;
 
+
+
+void RTCCallback (void* arg)
+{
+  uint8_t hours = 0, minutes = 0, seconds = 0;\
+  RTC_Get(&hours, &minutes, &seconds);
+  Packet_Put(0x0C, hours, minutes, seconds);
+  LEDs_Toggle(LED_YELLOW);
+
+}
 
 /*! @brief Handles the "Program" request packet
  *
@@ -153,6 +165,16 @@ static bool HandleModePacket(bool specialPacket)
   return FALSE;
 }
 
+static bool HandleTimePacket(void)
+{
+  if (Packet_Parameter1 < 24 && Packet_Parameter2 < 60 && Packet_Parameter3 < 60 )
+    {
+      RTC_Set(Packet_Parameter1, Packet_Parameter2, Packet_Parameter3);
+      return TRUE;
+    }
+  return FALSE;
+}
+
 /*! @brief Handles the "Special" request packet
  *
  *  @param None.
@@ -215,6 +237,10 @@ static void HandlePacket(void)
 	success = HandleModePacket(FALSE);
     break;
 
+    case (PACKET_SET_TIME):
+	success = HandleTimePacket();
+    break;
+
 
    break;
   }
@@ -258,6 +284,8 @@ static void TowerNumberModeInit(void)
 int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
+
+  __DI();
   // stores the tower number as a union to be able to access hi and lo bytes
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
@@ -267,6 +295,9 @@ int main(void)
   if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init())
     LEDs_On(LED_ORANGE);
 
+  uint16_t colour = LED_BLUE;
+  RTC_Init(RTCCallback, NULL);
+  __EI();
   //handles the initialization tower number and mode in the flash
   TowerNumberModeInit();
 
@@ -276,7 +307,7 @@ int main(void)
 
   for (;;)
   {
-      UART_Poll(); //loop polling the UART to receive and sends bytes
+      //UART_Poll(); //loop polling the UART to receive and sends bytes
       if (Packet_Get()) //checks if any complete packets have been received and calls the HandlePacket function
 	{
 	  HandlePacket();

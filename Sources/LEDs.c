@@ -47,7 +47,7 @@ bool LEDs_Init(void)
 
 void LEDs_On(const TLED color)
 {
-  GPIOA_PDDR = GPIO_PSOR_PTSO(color);
+  GPIOA_PDDR |= GPIO_PSOR_PTSO(color);
 }
 
 void LEDs_Off(const TLED color)

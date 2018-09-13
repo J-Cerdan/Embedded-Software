@@ -4,17 +4,13 @@
 /*##                                   */
 /*##     Filename  : ProcessorExpert.ld */
 /*##                                   */
-/*##     Project   : es18spr05.new     */
+/*##     Project   : Lab3-RTC          */
 /*##                                   */
 /*##     Processor : MK70FN1M0VMJ12    */
 /*##                                   */
 /*##     Compiler  : GNU C Compiler    */
 /*##                                   */
-<<<<<<< HEAD
-/*##     Date/Time : 2018-08-30, 18:04, # CodeGen: 0 */
-=======
-/*##     Date/Time : 2015-08-17, 00:21, # CodeGen: 0 */
->>>>>>> origin/Lab-3-template
+/*##     Date/Time : 2018-09-07, 10:02, # CodeGen: 0 */
 /*##                                   */
 /*##     Abstract  :                   */
 /*##                                   */
