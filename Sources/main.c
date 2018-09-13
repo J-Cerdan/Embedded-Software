@@ -307,7 +307,7 @@ int main(void)
 
   for (;;)
   {
-      UART_Poll(); //loop polling the UART to receive and sends bytes
+      //UART_Poll(); //loop polling the UART to receive and sends bytes
       if (Packet_Get()) //checks if any complete packets have been received and calls the HandlePacket function
 	{
 	  HandlePacket();
