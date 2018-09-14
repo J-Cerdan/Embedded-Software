@@ -78,7 +78,7 @@ bool FTM_Set(const TFTMChannel* const aFTMChannel)
     {
       if (aFTMChannel->timerFunction == TIMER_FUNCTION_INPUT_CAPTURE)
 	{
-	  FTM0_CnSC(aFTMChannel->channelNb) <<= (aFTMChannel->ioType.outputAction);
+	  FTM0_CnSC(aFTMChannel->channelNb) = ((aFTMChannel->ioType.outputAction) << 2);
 	  FTM0_CnSC(aFTMChannel->channelNb) &= (FTM_CnSC_MSA_MASK | FTM_CnSC_MSB_MASK);
 	  CallBackFunctions[aFTMChannel->channelNb] = aFTMChannel->callbackFunction;
 	  CallBackArgument[aFTMChannel->channelNb] = aFTMChannel->callbackArguments;
@@ -87,7 +87,7 @@ bool FTM_Set(const TFTMChannel* const aFTMChannel)
 	}
       else
 	{
-	  FTM0_CnSC(aFTMChannel->channelNb) <<= (aFTMChannel->ioType.inputDetection);
+	  FTM0_CnSC(aFTMChannel->channelNb) = ((aFTMChannel->ioType.inputDetection) << 2);
 	  FTM0_CnSC(aFTMChannel->channelNb) &= ~FTM_CnSC_MSB_MASK;
 	  FTM0_CnSC(aFTMChannel->channelNb) |= FTM_CnSC_MSA_MASK;
 	  CallBackFunctions[aFTMChannel->channelNb] = aFTMChannel->callbackFunction;
@@ -111,9 +111,11 @@ bool FTM_StartTimer(const TFTMChannel* const aFTMChannel)
 {
   if ((aFTMChannel != NULL) && (aFTMChannel->channelNb < 8))
     {
-      FTM0_CnV(aFTMChannel->channelNb) = 65536 % (FTM0_CNT + aFTMChannel->delayCount);
+      uint16_t count = FTM0_CNT;
+      FTM0_CnV(aFTMChannel->channelNb) = (count + aFTMChannel->delayCount) % 65536;
+      //65536 %
       FTM0_CnSC(aFTMChannel->channelNb) &= ~FTM_CnSC_CHF_MASK;
-      FTM0_CnSC(aFTMChannel->channelNb) = FTM_CnSC_CHIE_MASK;
+      FTM0_CnSC(aFTMChannel->channelNb) |= FTM_CnSC_CHIE_MASK;
       return TRUE;
     }
   return FALSE;
@@ -131,7 +133,7 @@ void __attribute__ ((interrupt)) FTM0_ISR(void)
     {
       if (FTM0_CnSC(i) & (FTM_CnSC_CHF_MASK | FTM_CnSC_CHIE_MASK))
 	{
-	  FTM0_CnSC(i) &= ~FTM_CnSC_CHF_MASK;
+	  FTM0_CnSC(i) &= ~(FTM_CnSC_CHF_MASK | FTM_CnSC_CHIE_MASK);
 	  if (CallBackFunctions[i])
 	      (*(CallBackFunctions[i]))(CallBackArgument[i]);
 	}
