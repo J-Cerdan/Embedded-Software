@@ -55,6 +55,7 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
 
   PIT_Enable(TRUE);
 
+  //Interrupt channel assignments
   NVICISER2 |= (1 << (68 % 32));
   NVICICPR2 |= (1 << (68 % 32));
 
@@ -74,7 +75,7 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
  */
 void PIT_Set(const uint32_t period, const bool restart)
 {
-  //Critical mode to stops foreground or background operations that could affect the set process
+  //Critical mode to stop foreground or background operations that could affect the set process
   EnterCritical();
 
   uint32_t clockPeriod;
@@ -91,7 +92,9 @@ void PIT_Set(const uint32_t period, const bool restart)
       PIT_TCTRL0 &= ~PIT_TCTRL_TEN_MASK;
       PIT_TCTRL0 |= PIT_TCTRL_TEN_MASK;
     }
+
   ExitCritical();
+
 }
 
 /*! @brief Enables or disables the PIT.

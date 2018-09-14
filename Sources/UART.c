@@ -66,6 +66,7 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
   UART2_C2 |= UART_C2_RIE_MASK;
   UART2_C2 &= ~UART_C2_TIE_MASK;
 
+  //Interrupt channel assignments
   NVICISER1 |= NVIC_ICPR_CLRPEND(1 << (49 % 32));
   NVICICPR1 |= NVIC_ISER_SETENA(1 << (49 % 32));
 

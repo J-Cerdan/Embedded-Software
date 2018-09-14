@@ -7,6 +7,10 @@
  *  @author PMcL
  *  @date 2015-08-24
  */
+/*!
+**  @addtogroup RTC_module RTC module documentation
+**  @{
+*/
 
 #ifndef RTC_H
 #define RTC_H
@@ -51,3 +55,8 @@ void RTC_Get(uint8_t* const hours, uint8_t* const minutes, uint8_t* const second
 void __attribute__ ((interrupt)) RTC_ISR(void);
 
 #endif
+
+/*!
+** @}
+*/
+
