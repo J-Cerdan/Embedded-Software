@@ -46,6 +46,7 @@
 #include "LEDs.h"
 #include "RTC.h"
 #include "PIT.h"
+#include "FTM.h"
 
 
 //macros defined for determining which command protocol has been sent
@@ -65,17 +66,11 @@ volatile uint16union_t *NvTowerMd;
 //Private global constants to store the major and minor tower version
 static const uint8_t MajorTowerVersion = 0x01;
 static const uint8_t MinorTowerVersion = 0x00;
+//TFTMChannel variable for Channel 0
+static TFTMChannel Ch0;
 
 
 
-void RTCCallback (void* arg)
-{
-  uint8_t hours = 0, minutes = 0, seconds = 0;\
-  RTC_Get(&hours, &minutes, &seconds);
-  Packet_Put(0x0C, hours, minutes, seconds);
-  LEDs_Toggle(LED_YELLOW);
-
-}
 
 /*! @brief Handles the "Program" request packet
  *
@@ -277,10 +272,29 @@ static void TowerNumberModeInit(void)
     }
 }
 
-void PITCallback(void* arg)
+static void CH01SecondTimerInit(void)
 {
+  Ch0;
+}
 
+static void PITCallback(void* arg)
+{
   LEDs_Toggle(LED_GREEN);
+
+}
+
+static void RTCCallback (void* arg)
+{
+  uint8_t hours = 0, minutes = 0, seconds = 0;\
+  RTC_Get(&hours, &minutes, &seconds);
+  Packet_Put(0x0C, hours, minutes, seconds);
+  LEDs_Toggle(LED_YELLOW);
+
+}
+
+static void FTM0CH0Callback(void* arg)
+{
+  LEDs_Off(LED_BLUE);
 
 }
 
@@ -306,11 +320,13 @@ int main(void)
 
   RTC_Init(RTCCallback, NULL);
   PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL);
-  PIT_Set(500000000, TRUE);
+  FTM_Init();
 
   __EI();
 
 
+
+  PIT_Set(500000000, TRUE);
 
 
   //handles the initialization tower number and mode in the flash

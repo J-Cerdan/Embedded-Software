@@ -72,7 +72,7 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
  */
 void PIT_Set(const uint32_t period, const bool restart)
 {
-
+  EnterCritical();
   uint32_t clockPeriod;
   clockPeriod = 1000000000/ModuleClk;
 
@@ -85,7 +85,7 @@ void PIT_Set(const uint32_t period, const bool restart)
       PIT_TCTRL0 &= ~PIT_TCTRL_TEN_MASK;
       PIT_TCTRL0 |= PIT_TCTRL_TEN_MASK;
     }
-
+  ExitCritical();
 }
 
 /*! @brief Enables or disables the PIT.

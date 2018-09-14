@@ -12,8 +12,14 @@
 
 // new types
 #include "types.h"
+#include "FTM.h"
+#include "MK70F12.h"
+#include "PE_Types.h"
 
+#define CHANNELS 8
 
+static void (*CallBackFunctions[CHANNELS]) (void*);
+static void* CallBackArgument[CHANNELS];
 
 
 /*! @brief Sets up the FTM before first use.
@@ -26,11 +32,15 @@ bool FTM_Init()
   //Enable FTM0 clock gate control
   SIM_SCGC6 |= SIM_SCGC6_FTM0_MASK;
 
-  FTM0_CNTIN = 0x0000;
+  FTM0_CNTIN = ~FTM_CNTIN_INIT_MASK;
 
-  FTM0_MOD = 0xffff;
+  FTM0_MOD = FTM_MOD_MOD_MASK;
 
-  FTM0_CNT = 0x0000;
+  FTM0_CNT = FTM_CNT_COUNT_MASK;
+
+  FTM0_MODE &= ~FTM_MODE_FTMEN_MASK;
+
+
 
   FTM0_SC = FTM_SC_CLKS(2);
 
@@ -63,7 +73,31 @@ bool FTM_Init()
  */
 bool FTM_Set(const TFTMChannel* const aFTMChannel)
 {
-  return TRUE;
+  EnterCritical();
+  if (aFTMChannel != NULL)
+    {
+      if (aFTMChannel->timerFunction == TIMER_FUNCTION_INPUT_CAPTURE)
+	{
+	  FTM0_CnSC(aFTMChannel->channelNb) <<= (aFTMChannel->ioType.outputAction);
+	  FTM0_CnSC(aFTMChannel->channelNb) &= (FTM_CnSC_MSA_MASK | FTM_CnSC_MSB_MASK);
+	  CallBackFunctions[aFTMChannel->channelNb] = aFTMChannel->callbackFunction;
+	  CallBackArgument[aFTMChannel->channelNb] = aFTMChannel->callbackArguments;
+	  ExitCritical();
+	  return TRUE;
+	}
+      else
+	{
+	  FTM0_CnSC(aFTMChannel->channelNb) <<= (aFTMChannel->ioType.inputDetection);
+	  FTM0_CnSC(aFTMChannel->channelNb) &= ~FTM_CnSC_MSB_MASK;
+	  FTM0_CnSC(aFTMChannel->channelNb) |= FTM_CnSC_MSA_MASK;
+	  CallBackFunctions[aFTMChannel->channelNb] = aFTMChannel->callbackFunction;
+	  CallBackArgument[aFTMChannel->channelNb] = aFTMChannel->callbackArguments;
+	  ExitCritical();
+	  return TRUE;
+	}
+    }
+  ExitCritical();
+  return FALSE;
 }
 
 
@@ -75,7 +109,14 @@ bool FTM_Set(const TFTMChannel* const aFTMChannel)
  */
 bool FTM_StartTimer(const TFTMChannel* const aFTMChannel)
 {
-  return TRUE;
+  if ((aFTMChannel != NULL) && (aFTMChannel->channelNb < 8))
+    {
+      FTM0_CnV(aFTMChannel->channelNb) = 65536 % (FTM0_CNT + aFTMChannel->delayCount);
+      FTM0_CnSC(aFTMChannel->channelNb) &= ~FTM_CnSC_CHF_MASK;
+      FTM0_CnSC(aFTMChannel->channelNb) = FTM_CnSC_CHIE_MASK;
+      return TRUE;
+    }
+  return FALSE;
 }
 
 
@@ -86,6 +127,14 @@ bool FTM_StartTimer(const TFTMChannel* const aFTMChannel)
  */
 void __attribute__ ((interrupt)) FTM0_ISR(void)
 {
-
+  for (uint8_t i = 0; i < 8; i++)
+    {
+      if (FTM0_CnSC(i) & (FTM_CnSC_CHF_MASK | FTM_CnSC_CHIE_MASK))
+	{
+	  FTM0_CnSC(i) &= ~FTM_CnSC_CHF_MASK;
+	  if (CallBackFunctions[i])
+	      (*(CallBackFunctions[i]))(CallBackArgument[i]);
+	}
+    }
 }
 
