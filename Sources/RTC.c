@@ -58,8 +58,8 @@ bool RTC_Init(void (*userFunction)(void*), void* userArguments)
     }
 
 
-  NVICISER2 |= NVIC_ICPR_CLRPEND(1 << (67 % 32));
-  NVICICPR2 |= NVIC_ISER_SETENA(1 << (67 % 32));
+  NVICISER2 |= NVIC_ISER_SETENA(1 << (67 % 32));
+  NVICICPR2 |= NVIC_ICPR_CLRPEND(1 << (67 % 32));
 
   RTC_SR |= RTC_SR_TCE_MASK;
   RTC_IER |= RTC_IER_TSIE_MASK;

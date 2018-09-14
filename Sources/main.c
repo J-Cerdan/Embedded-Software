@@ -301,7 +301,7 @@ static void CH01SecondTimerInit(void)
   Ch0.channelNb = 0;
   Ch0.delayCount = CPU_MCGFF_CLK_HZ_CONFIG_0;
   Ch0.timerFunction = TIMER_FUNCTION_OUTPUT_COMPARE;
-  Ch0.ioType.outputAction = TIMER_OUTPUT_TOGGLE;
+  Ch0.ioType.outputAction = TIMER_OUTPUT_HIGH;
   Ch0.callbackFunction = FTM0CH0Callback;
   Ch0.callbackArguments = NULL;
   FTM_Set(&Ch0);

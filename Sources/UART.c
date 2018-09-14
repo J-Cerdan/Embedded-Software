@@ -66,8 +66,8 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
   UART2_C2 |= UART_C2_RIE_MASK;
   UART2_C2 &= ~UART_C2_TIE_MASK;
 
-  NVICISER1 |= NVIC_ICPR_CLRPEND(1 << (49 % 32));
-  NVICICPR1 |= NVIC_ISER_SETENA(1 << (49 % 32));
+  NVICISER1 |= NVIC_ISER_SETENA(1 << (49 % 32));
+  NVICICPR1 |= NVIC_ICPR_CLRPEND(1 << (49 % 32));
 
 
   //initialize transmit and receive FIFO and returns 1 if the succeed, marking the success of initializing the UART
