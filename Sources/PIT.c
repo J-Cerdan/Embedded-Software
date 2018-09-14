@@ -4,8 +4,8 @@
  *
  *  This contains the functions for operating the periodic interrupt timer (PIT).
  *
- *  @author PMcL
- *  @date 2015-08-22
+ *  @author Amir Hussein & Joseph Cerdan
+ *  @date 2018-09-14
  */
 /*!
 **  @addtogroup PIT_module PIT module documentation
@@ -13,11 +13,16 @@
 */
 
 // new types
+//includes the function prototypes to be implemented here and any public variables or constants
 #include "PIT.h"
+//LED module - contains all the public functions to be used in this module
 #include "LEDs.h"
+//provides useful definitions
 #include "PE_Types.h"
+//This header file implements peripheral memory map for MK70F1 processor.
 #include "MK70F12.h"
 
+//Private global variable to contain module clock
 static uint32_t ModuleClk;
 
 //pointer and arguments to user call back function
@@ -58,9 +63,6 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
 
   return TRUE;
 
-  //Freeze timer for debug and view timer value (based on 44.4.1.2)
-
-
 }
 
 /*! @brief Sets the value of the desired period of the PIT.
@@ -72,8 +74,12 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
  */
 void PIT_Set(const uint32_t period, const bool restart)
 {
+  //Critical mode to stops foreground or background operations that could affect the set process
   EnterCritical();
+
   uint32_t clockPeriod;
+
+  //Calculation to determine clock cycles needed
   clockPeriod = 1000000000/ModuleClk;
 
   //Set timer start value
