@@ -35,10 +35,14 @@ bool FIFO_Init(TFIFO * const fifo)
 
 bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 {
-
+  //Critical mode to stop foreground or background operations
+  EnterCritical();
   //Checks if FIFO has reached maximum capacity
   if (fifo->NbBytes == FIFO_SIZE)
-    return FALSE;
+    {
+      ExitCritical();
+      return FALSE;
+    }
 
   //Assigns received data into correct FIFO location
   fifo->Buffer[fifo->End] = data;
@@ -53,16 +57,22 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
   //Maintains Number of Bytes within FIFO
   fifo->NbBytes++;
 
+  ExitCritical();
   return TRUE;
 }
 
 
 bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
 {
-
+  //Critical mode to stop foreground or background operations
+  EnterCritical();
   //Checks if any data is stored in the FIFO
   if (fifo->NbBytes == 0)
-    return FALSE;
+    {
+      ExitCritical();
+      return FALSE;
+    }
+
 
   //Identifies oldest data within FIFO and assigns to data pointer for transmission
   *dataPtr = fifo->Buffer[fifo->Start];
@@ -77,6 +87,7 @@ bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
   if (fifo->Start > FIFO_SIZE-1)
     fifo->Start = 0;
 
+  ExitCritical();
   return TRUE;
 
 }

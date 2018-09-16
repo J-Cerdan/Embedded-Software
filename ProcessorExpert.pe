@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PEproject>
   <Header>
-    <Name>es18spr05.new</Name>
+    <Name>Lab3-dev</Name>
     <SavedBy>PMcL</SavedBy>
     <ModificationStamp>16</ModificationStamp>
     <Date>2015-07-20</Date>
@@ -20208,7 +20208,7 @@
       </ItemState>
       <ItemState>
         <ItemSymbol>FLLEnblCLKMode0</ItemSymbol>
-        <ReadOnly>false</ReadOnly>
+        <ReadOnly>true</ReadOnly>
         <UserReadOnly>false</UserReadOnly>
         <PropertyModelIsAutomatic>false</PropertyModelIsAutomatic>
         <Index>1</Index>
@@ -20228,10 +20228,10 @@
       </ItemState>
       <ItemState>
         <ItemSymbol>FLL_RefClkSrcCLKMode0</ItemSymbol>
-        <ReadOnly>false</ReadOnly>
+        <ReadOnly>true</ReadOnly>
         <UserReadOnly>false</UserReadOnly>
         <PropertyModelIsAutomatic>false</PropertyModelIsAutomatic>
-        <Index>0</Index>
+        <Index>1</Index>
         <Expanded>true</Expanded>
       </ItemState>
       <ItemState>
@@ -20263,7 +20263,7 @@
       </ItemState>
       <ItemState>
         <ItemSymbol>PLLEnblCLKMode0</ItemSymbol>
-        <ReadOnly>false</ReadOnly>
+        <ReadOnly>true</ReadOnly>
         <UserReadOnly>false</UserReadOnly>
         <PropertyModelIsAutomatic>false</PropertyModelIsAutomatic>
         <Index>1</Index>

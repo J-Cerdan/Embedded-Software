@@ -36,28 +36,27 @@ bool LEDs_Init(void)
   PORTA_PCR10 |= PORT_PCR_MUX(1);
 
   //Initialise GPIOA ports
-  GPIOA_PDOR &= GPIO_PDOR_PDO_SHIFT;
-  GPIOA_PSOR &= GPIO_PSOR_PTSO_SHIFT;
-  GPIOA_PCOR &= GPIO_PCOR_PTCO_SHIFT;
-  GPIOA_PTOR &= GPIO_PTOR_PTTO_SHIFT;
-  GPIOA_PDDR &= GPIO_PDDR_PDD_SHIFT;
+  GPIOA_PDDR |= (LED_ORANGE | LED_YELLOW | LED_GREEN | LED_BLUE);
+  GPIOA_PDOR |= (LED_ORANGE | LED_YELLOW | LED_GREEN | LED_BLUE);
+  GPIOA_PSOR = (LED_ORANGE | LED_YELLOW | LED_GREEN | LED_BLUE);
 
   return TRUE;
 }
 
 void LEDs_On(const TLED color)
 {
-  GPIOA_PDDR |= GPIO_PSOR_PTSO(color);
+  GPIOA_PCOR = color;
 }
 
 void LEDs_Off(const TLED color)
 {
-  GPIOA_PDDR &= ~GPIO_PCOR_PTCO(color);
+  GPIOA_PSOR = color;
+
 }
 
 void LEDs_Toggle(const TLED color)
 {
-  GPIOA_PDDR |= GPIO_PTOR_PTTO(color);
+  GPIOA_PTOR = color;
 }
 
 /*!
