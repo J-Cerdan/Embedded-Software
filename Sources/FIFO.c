@@ -35,6 +35,7 @@ bool FIFO_Init(TFIFO * const fifo)
 
 bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 {
+  //Critical mode to stop foreground or background operations
   EnterCritical();
   //Checks if FIFO has reached maximum capacity
   if (fifo->NbBytes == FIFO_SIZE)
@@ -63,6 +64,7 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 
 bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
 {
+  //Critical mode to stop foreground or background operations
   EnterCritical();
   //Checks if any data is stored in the FIFO
   if (fifo->NbBytes == 0)
