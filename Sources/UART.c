@@ -66,14 +66,10 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
   UART2_C2 |= UART_C2_RIE_MASK;
   UART2_C2 &= ~UART_C2_TIE_MASK;
 
-<<<<<<< Sources/UART.c
-  //Interrupt channel assignments
-  NVICISER1 |= NVIC_ICPR_CLRPEND(1 << (49 % 32));
-  NVICICPR1 |= NVIC_ISER_SETENA(1 << (49 % 32));
-=======
+
   NVICISER1 |= NVIC_ISER_SETENA(1 << (49 % 32));
   NVICICPR1 |= NVIC_ICPR_CLRPEND(1 << (49 % 32));
->>>>>>> Sources/UART.c
+
 
 
   //initialize transmit and receive FIFO and returns 1 if the succeed, marking the success of initializing the UART
@@ -92,7 +88,7 @@ bool UART_OutChar(const uint8_t data)
 {
   if (FIFO_Put(&TxFIFO, data))
     {
-      UART2_C2 |= UART_C2_TIE_MASK;
+      UART2_C2 |= UART_C2_TIE_MASK; //enable transmit interrupt if there is something is the TxFIFO
       return TRUE;
     }
 
@@ -124,7 +120,7 @@ void __attribute__ ((interrupt)) UART_ISR(void)
       if (tempRead & UART_S1_TDRE_MASK)//true if transmit register empty flag is set
 	if(!(FIFO_Get(&TxFIFO, (uint8_t *) &UART2_D)))// type cast to fix volatile error
 	  {
-	    UART2_C2 &= ~UART_C2_TIE_MASK;
+	    UART2_C2 &= ~UART_C2_TIE_MASK; //turn off transmit interrupt when TxFIFO is empty
 	  }
     }
 

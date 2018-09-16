@@ -274,13 +274,22 @@ static void TowerNumberModeInit(void)
 }
 
 
-
+/*! @brief Call back functions for the PIT ISR
+ *
+ *  @param void
+ *  @return void* argument for the ISR
+ */
 static void PITCallback(void* arg)
 {
   LEDs_Toggle(LED_GREEN);
 
 }
 
+/*! @brief Call back functions for the RTC ISR
+ *
+ *  @param void
+ *  @return void* argument for the ISR
+ */
 static void RTCCallback (void* arg)
 {
   uint8_t hours = 0, minutes = 0, seconds = 0;\
@@ -290,12 +299,22 @@ static void RTCCallback (void* arg)
 
 }
 
+/*! @brief Call back functions for the FTM) channel 0 ISR
+ *
+ *  @param void
+ *  @return arg argument for the ISR
+ */
 static void FTM0CH0Callback(void* arg)
 {
   LEDs_Off(LED_BLUE);
 
 }
 
+/*! @brief builds the TFTMChannel struct for channel 0
+ *
+ *  @param void
+ *  @return void
+ */
 static void CH01SecondTimerInit(void)
 {
   Ch0.channelNb = 0;
@@ -316,7 +335,7 @@ int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
 
-  __DI();
+  __DI(); //make sure interrupts are disabled
   // stores the tower number as a union to be able to access hi and lo bytes
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
@@ -331,7 +350,7 @@ int main(void)
   PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL);
   FTM_Init();
 
-  __EI();
+  __EI(); //enable interrupts
 
 
 
@@ -347,7 +366,7 @@ int main(void)
 
   for (;;)
   {
-      //UART_Poll(); //loop polling the UART to receive and sends bytes
+
       if (Packet_Get()) //checks if any complete packets have been received and calls the HandlePacket function
 	{
 	  HandlePacket();

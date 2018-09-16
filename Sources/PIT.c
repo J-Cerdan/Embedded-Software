@@ -55,14 +55,10 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
 
   PIT_Enable(TRUE);
 
-<<<<<<< Sources/PIT.c
-  //Interrupt channel assignments
-  NVICISER2 |= (1 << (68 % 32));
-  NVICICPR2 |= (1 << (68 % 32));
-=======
+
   NVICISER2 |= NVIC_ISER_SETENA(1 << (68 % 32));
   NVICICPR2 |= NVIC_ICPR_CLRPEND(1 << (68 % 32));
->>>>>>> Sources/PIT.c
+
 
   CallBack = userFunction;
   CallBackArgument = userArguments;
