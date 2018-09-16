@@ -206,7 +206,8 @@ static bool HandleSpecialPacket(bool startUp)
 static void HandlePacket(void)
 {
   uint8_t success; //used to store whether the tower executed all the requests successfully
-
+  LEDs_On(LED_BLUE);
+  FTM_StartTimer(&Ch0);
   //handles the requests packets coming from the PC
   switch (Packet_Command & ~PACKET_ACK_MASK)
   {
@@ -272,10 +273,7 @@ static void TowerNumberModeInit(void)
     }
 }
 
-static void CH01SecondTimerInit(void)
-{
-  Ch0;
-}
+
 
 static void PITCallback(void* arg)
 {
@@ -296,6 +294,17 @@ static void FTM0CH0Callback(void* arg)
 {
   LEDs_Off(LED_BLUE);
 
+}
+
+static void CH01SecondTimerInit(void)
+{
+  Ch0.channelNb = 0;
+  Ch0.delayCount = CPU_MCGFF_CLK_HZ_CONFIG_0;
+  Ch0.timerFunction = TIMER_FUNCTION_OUTPUT_COMPARE;
+  Ch0.ioType.outputAction = TIMER_OUTPUT_HIGH;
+  Ch0.callbackFunction = FTM0CH0Callback;
+  Ch0.callbackArguments = NULL;
+  FTM_Set(&Ch0);
 }
 
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
@@ -327,7 +336,7 @@ int main(void)
 
 
   PIT_Set(500000000, TRUE);
-
+  CH01SecondTimerInit();
 
   //handles the initialization tower number and mode in the flash
   TowerNumberModeInit();

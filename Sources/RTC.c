@@ -65,9 +65,15 @@ bool RTC_Init(void (*userFunction)(void*), void* userArguments)
           }
     }
 
+<<<<<<< Sources/RTC.c
   //Interrupt channel assignments
   NVICISER2 |= NVIC_ICPR_CLRPEND(1 << (67 % 32));
   NVICICPR2 |= NVIC_ISER_SETENA(1 << (67 % 32));
+=======
+
+  NVICISER2 |= NVIC_ISER_SETENA(1 << (67 % 32));
+  NVICICPR2 |= NVIC_ICPR_CLRPEND(1 << (67 % 32));
+>>>>>>> Sources/RTC.c
 
   //Enable counter and time seconds interrupt
   RTC_SR |= RTC_SR_TCE_MASK;
