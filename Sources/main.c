@@ -352,8 +352,7 @@ int main(void)
 
   __EI(); //enable interrupts
 
-
-
+  //setup the PIT and call for Channel 0 to be set up
   PIT_Set(500000000, TRUE);
   CH01SecondTimerInit();
 
