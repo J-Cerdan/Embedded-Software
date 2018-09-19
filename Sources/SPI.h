@@ -7,6 +7,10 @@
  *  @author PMcL
  *  @date 2016-08-22
  */
+/*!
+**  @addtogroup SPI_module SPI module documentation
+**  @{
+*/
 
 #ifndef SPI_H
 #define SPI_H
@@ -46,3 +50,8 @@ void SPI_SelectSlaveDevice(const uint8_t slaveAddress);
 void SPI_Exchange(const uint16_t dataTx, uint16_t* const dataRx);
 
 #endif
+
+/*!
+** @}
+*/
+
