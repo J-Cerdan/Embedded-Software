@@ -18,6 +18,8 @@
 #include "MK70F12.h"
 #include "SPI.h"
 
+static uint8_t SlaveAddress;
+
 
 /*! @brief Sets up the SPI before first use.
  *
@@ -27,10 +29,12 @@
  */
 bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
 {
+  //utilise if statements to enable values
+
   //Enable SPI2, PortD and PortE clock gates (SCGC)
   SIM_SCGC3 |= SIM_SCGC3_DSPI2_MASK;
-  SIM_SCGC5 |= SIM_SCGC5_PORTD_MASK;
-  SIM_SCGC5 |= SIM_SCGC5_PORTE_MASK;
+  SIM_SCGC5 |= SIM_SCGC5_PORTD_MASK;//slave in, slave out selection
+  SIM_SCGC5 |= SIM_SCGC5_PORTE_MASK;//chip select 17/18
 
 
   //Module Configuration Registers (MCR)
@@ -54,11 +58,23 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
   //Set MSB first
   SPI2_CTAR0 &= ~SPI_CTAR_LSBFE_MASK;
 
+  //Set Delay After Transfer Scalers
+  SPI2_CTAR0 |= SPI_CTAR_PDT(0);
+  SPI2_CTAR0 |= SPI_CTAR_DT(256);
+
   //Set baud rate to 1Mbit/s ?Need to calculate?
+  SPI2_CTAR0 |= SPI_CTAR_DBR();
+  SPI2_CTAR0 |= SPI_CTAR_PBR();
   SPI2_CTAR0 |= SPI_CTAR_BR();
 
-  //Initialise values on any chip select pins?
+  //Initialise values on any chip select pins
+  PORTD_GPCLR |= PORT_GPCLR_GPWE(11);
+  PORTD_GPCLR |= PORT_GPCLR_GPWE(12);
+  PORTD_GPCLR |= PORT_GPCLR_GPWE(13);
+  PORTD_GPCLR |= PORT_GPCLR_GPWE(14);
+  PORTD_GPCLR |= PORT_GPCLR_GPWE(15);
 
+  //
 
   return TRUE;
 }
@@ -69,7 +85,7 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
  */
 void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
 {
-
+  SlaveAddress = slaveAddress;
 }
 
 /*! @brief Simultaneously transmits and receives data.
