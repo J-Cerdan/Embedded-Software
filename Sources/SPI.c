@@ -29,34 +29,78 @@ static uint8_t SlaveAddress;
  */
 bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
 {
-  //utilise if statements to enable values
+
+  //Utilise if statements to enable values
 
   //Enable SPI2, PortD and PortE clock gates (SCGC)
   SIM_SCGC3 |= SIM_SCGC3_DSPI2_MASK;
-  SIM_SCGC5 |= SIM_SCGC5_PORTD_MASK;//slave in, slave out selection
-  SIM_SCGC5 |= SIM_SCGC5_PORTE_MASK;//chip select 17/18
+  SIM_SCGC5 |= SIM_SCGC5_PORTD_MASK; //slave in, slave out selection
+  SIM_SCGC5 |= SIM_SCGC5_PORTE_MASK; //chip select 17/18
 
 
   //Module Configuration Registers (MCR)
-  //Set SPI to Master
-  SPI2_MCR |= SPI_MCR_MSTR_MASK;
-
-  //Disable continuous clock
-  SPI2_MCR &= ~SPI_MCR_CONT_SCKE_MASK;
-
-
   //Control and Transfer Attributes Registers (CTAR)
-  //Set frame size to 16 bits NOTE: CTAR should not be written while module is in running state (Fixed Value?)
-  //SPI2_CTAR0 |= SPI_CTAR_FMSZ(16);
+  //NOTE: CTAR should not be written while module is in running state (Fixed Value?)
 
-  //Set Clock polarity to inactive low
-  SPI2_CTAR0 &= ~SPI_CTAR_CPOL_MASK;
+  if (aSPIModule != Null)
+    {
+      if (aSPIModule->isMaster == TRUE)
+	{
+	  //Set SPI to Master
+	  SPI2_MCR |= SPI_MCR_MSTR_MASK;
+	}
+      else
+	{
+	  SPI2_MCR &= ~SPI_MCR_MSTR_MASK;
+	}
 
-  //Set data capture to leading edge
-  SPI2_CTAR0 &= ~SPI_CTAR_CPHA_MASK;
+      if (aSPIModule->continuousClock == FALSE)
+	{
+	  //Disable continuous clock
+	  SPI2_MCR &= ~SPI_MCR_CONT_SCKE_MASK;
+	}
+      else
+	{
+	  SPI2_MCR |= SPI_MCR_CONT_SCKE_MASK;
+	}
 
-  //Set MSB first
-  SPI2_CTAR0 &= ~SPI_CTAR_LSBFE_MASK;
+      if (aSPIModule->inactiveHighClock == FALSE)
+      	{
+	  //Set Clock polarity to inactive low
+	  SPI2_CTAR0 &= ~SPI_CTAR_CPOL_MASK;
+      	}
+      else
+      	{
+	  SPI2_CTAR0 |= SPI_CTAR_CPOL_MASK;
+      	}
+
+      if (aSPIModule->changedOnLeadingClockEdge == FALSE)
+      	{
+	  //Set data capture to leading edge
+	  SPI2_CTAR0 &= ~SPI_CTAR_CPHA_MASK;
+      	}
+      else
+      	{
+	  SPI2_CTAR0 |= SPI_CTAR_CPHA_MASK;
+      	}
+
+      if (aSPIModule->LSBFirst == FALSE)
+      	{
+	  //Set MSB first
+	  SPI2_CTAR0 &= ~SPI_CTAR_LSBFE_MASK;
+      	}
+      else
+      	{
+	  SPI2_CTAR0 |= SPI_CTAR_LSBFE_MASK;
+      	}
+
+      SPI2_CTAR0 |= SPI_CTAR_FMSZ(15);
+
+    }
+
+  //Exhaustive search? for both delay and baud
+  //baud rate = (module clock(50000000) x PBR) x [(1+DBR)/BR];
+  //aSPIModule->baudRate
 
   //Set Delay After Transfer Scalers
   SPI2_CTAR0 |= SPI_CTAR_PDT(0);
@@ -73,8 +117,15 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
   PORTD_GPCLR |= PORT_GPCLR_GPWE(13);
   PORTD_GPCLR |= PORT_GPCLR_GPWE(14);
   PORTD_GPCLR |= PORT_GPCLR_GPWE(15);
+  PORTE_GPCHR |= PORT_GPCHR_GPWE(18);
 
-  //
+  //Initial settings for transmitting data
+  SPI2_PUSHR &= ~SPI_PUSHR_CONT_MASK;
+  SPI2_PUSHR &= ~SPI_PUSHR_CTAS_MASK;
+  SPI2_PUSHR &= ~SPI_PUSHR_EOQ_MASK;
+  SPI2_PUSHR &= ~SPI_PUSHR_CTCNT_MASK;
+  SPI2_PUSHR |= SPI_PUSHR_PCS_MASK;
+
 
   return TRUE;
 }
@@ -96,6 +147,21 @@ void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
 void SPI_Exchange(const uint16_t dataTx, uint16_t* const dataRx)
 {
 
+
+}
+
+void CalculateDelay(uint32_t moduleClock)
+{
+  uint8_t pdt[] = {1,3,5,7};
+  uint16_t dt[] = {2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536};
+
+  for (uint8_t i = 0; i<sizeof(pdt); i++)
+    {
+      for (uint8_t j = 0; j<sizeof(dt); j++)
+	{
+
+	}
+    }
 }
 
 

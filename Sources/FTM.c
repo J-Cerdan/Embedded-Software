@@ -19,7 +19,7 @@
 #include "MK70F12.h"
 #include "PE_Types.h"
 
-#define CHANNELS 8\
+#define CHANNELS 8
 
 //arrays to store the call back functions and arguments for each channel of the FTM0
 static void (*CallBackFunctions[CHANNELS]) (void*);
