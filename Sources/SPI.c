@@ -18,8 +18,6 @@
 #include "MK70F12.h"
 #include "SPI.h"
 
-static uint8_t SlaveAddress;
-
 
 /*! @brief Sets up the SPI before first use.
  *
@@ -136,7 +134,7 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
  */
 void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
 {
-  SlaveAddress = slaveAddress;
+
 }
 
 /*! @brief Simultaneously transmits and receives data.
@@ -146,12 +144,14 @@ void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
  */
 void SPI_Exchange(const uint16_t dataTx, uint16_t* const dataRx)
 {
+  SPI2_PUSHR = dataTx;
 
 
 }
 
 void CalculateDelay(uint32_t moduleClock)
 {
+  uint8_t outcome, pdtResult, dtResult;
   uint8_t pdt[] = {1,3,5,7};
   uint16_t dt[] = {2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536};
 
@@ -159,11 +159,43 @@ void CalculateDelay(uint32_t moduleClock)
     {
       for (uint8_t j = 0; j<sizeof(dt); j++)
 	{
+	  outcome = moduleClock/(moduleClock*pdt[i]*dt[j]);
 
+	  if (!outcome)
+	    {
+	      pdtResult = pdt[i];
+	      dtResult = dt[j];
+	    }
 	}
     }
+
+  SPI2_CTAR0 = SPI_CTAR_PDT(pdtResult);
+  SPI2_CTAR0 = SPI_CTAR_DT(dtResult);
 }
 
+void CalculateBaud(TSPIModule* const aSPIModule, uint32_t moduleClock)
+{
+  uint8_t outcome, pbrResult, brResult, dbrResult;
+  uint8_t pbr[] = {2,3,5,7};
+  uint16_t br[] = {2,4,6,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768};
+
+  for (uint8_t i = 0; i<sizeof(pbr); i++)
+    {
+      for (uint8_t j = 0; j<sizeof(br); j++)
+	{
+	  outcome = aSPIModule->baudRate/(moduleClock*pbr[i]*((1+dbr)/br[j]));
+
+	  if (!outcome)
+	    {
+	      pbrResult = pbr[i];
+	      brResult = br[j];
+	    }
+	}
+    }
+
+  SPI2_CTAR0 = SPI_CTAR_PDT(pdtResult);
+  SPI2_CTAR0 = SPI_CTAR_DT(dtResult);
+}
 
 /*!
 ** @}
