@@ -13,11 +13,65 @@
 */
 
 // new types
+#include <stdlib.h>
 #include "types.h"
 #include "PE_Types.h"
 #include "MK70F12.h"
 #include "SPI.h"
 
+void CalculateDelay(uint32_t moduleClock)
+{
+  uint8_t outcome, lowestOutcome, pdtResult, dtResult;
+  uint8_t pdt[] = {1,3,5,7};
+  uint32_t dt[] = {2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536};
+
+  for (uint8_t i = 0; i<sizeof(pdt); i++)
+    {
+      for (uint8_t j = 0; j<sizeof(dt); j++)
+	{
+	  outcome = abs(200000-(moduleClock*pdt[i]*dt[j])); //200000 micro to hz
+
+	  if (outcome < lowestOutcome)
+	    {
+	      pdtResult = pdt[i];
+	      dtResult = dt[j];
+	      lowestOutcome = outcome;
+	    }
+	}
+    }
+
+
+
+  SPI2_CTAR0 = SPI_CTAR_PDT(pdtResult);
+  SPI2_CTAR0 = SPI_CTAR_DT(dtResult);
+}
+
+void CalculateBaud(TSPIModule const aSPIModule, uint32_t moduleClock)
+{
+  uint8_t outcome, lowestOutcome, pbrResult, brResult;
+  uint8_t dbr = 0;
+  uint8_t pbr[] = {2,3,5,7};
+  uint16_t br[] = {2,4,6,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768};
+
+  for (uint8_t i = 0; i<sizeof(pbr); i++)
+    {
+      for (uint8_t j = 0; j<sizeof(br); j++)
+	{
+	  outcome = abs(aSPIModule.baudRate - (moduleClock*pbr[i]*((1+dbr)/br[j])));
+
+	  if (outcome < lowestOutcome)
+	    {
+	      pbrResult = pbr[i];
+	      brResult = br[j];
+	      lowestOutcome = outcome;
+	    }
+	}
+    }
+
+  SPI2_CTAR0 &= ~SPI_CTAR_DBR_MASK;
+  SPI2_CTAR0 = SPI_CTAR_PBR(pbrResult);
+  SPI2_CTAR0 = SPI_CTAR_BR(brResult);
+}
 
 /*! @brief Sets up the SPI before first use.
  *
@@ -40,7 +94,7 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
   //Control and Transfer Attributes Registers (CTAR)
   //NOTE: CTAR should not be written while module is in running state (Fixed Value?)
 
-  if (aSPIModule != Null)
+  if (aSPIModule != NULL)
     {
       if (aSPIModule->isMaster == TRUE)
 	{
@@ -100,14 +154,17 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
   //baud rate = (module clock(50000000) x PBR) x [(1+DBR)/BR];
   //aSPIModule->baudRate
 
+  CalculateDelay(moduleClock);
+  CalculateBaud(*aSPIModule, moduleClock);
+
   //Set Delay After Transfer Scalers
-  SPI2_CTAR0 |= SPI_CTAR_PDT(0);
-  SPI2_CTAR0 |= SPI_CTAR_DT(256);
+  //SPI2_CTAR0 |= SPI_CTAR_PDT(pdtResult);
+  //SPI2_CTAR0 |= SPI_CTAR_DT(dtResult);
 
   //Set baud rate to 1Mbit/s ?Need to calculate?
-  SPI2_CTAR0 |= SPI_CTAR_DBR();
-  SPI2_CTAR0 |= SPI_CTAR_PBR();
-  SPI2_CTAR0 |= SPI_CTAR_BR();
+  //SPI2_CTAR0 |= SPI_CTAR_DBR(dbr);
+  //SPI2_CTAR0 |= SPI_CTAR_PBR(pbrResult);
+  //SPI2_CTAR0 |= SPI_CTAR_BR(brResult);
 
   //Initialise values on any chip select pins
   PORTD_GPCLR |= PORT_GPCLR_GPWE(11);
@@ -145,56 +202,8 @@ void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
 void SPI_Exchange(const uint16_t dataTx, uint16_t* const dataRx)
 {
   SPI2_PUSHR = dataTx;
+  //
 
-
-}
-
-void CalculateDelay(uint32_t moduleClock)
-{
-  uint8_t outcome, pdtResult, dtResult;
-  uint8_t pdt[] = {1,3,5,7};
-  uint16_t dt[] = {2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536};
-
-  for (uint8_t i = 0; i<sizeof(pdt); i++)
-    {
-      for (uint8_t j = 0; j<sizeof(dt); j++)
-	{
-	  outcome = moduleClock/(moduleClock*pdt[i]*dt[j]);
-
-	  if (!outcome)
-	    {
-	      pdtResult = pdt[i];
-	      dtResult = dt[j];
-	    }
-	}
-    }
-
-  SPI2_CTAR0 = SPI_CTAR_PDT(pdtResult);
-  SPI2_CTAR0 = SPI_CTAR_DT(dtResult);
-}
-
-void CalculateBaud(TSPIModule* const aSPIModule, uint32_t moduleClock)
-{
-  uint8_t outcome, pbrResult, brResult, dbrResult;
-  uint8_t pbr[] = {2,3,5,7};
-  uint16_t br[] = {2,4,6,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768};
-
-  for (uint8_t i = 0; i<sizeof(pbr); i++)
-    {
-      for (uint8_t j = 0; j<sizeof(br); j++)
-	{
-	  outcome = aSPIModule->baudRate/(moduleClock*pbr[i]*((1+dbr)/br[j]));
-
-	  if (!outcome)
-	    {
-	      pbrResult = pbr[i];
-	      brResult = br[j];
-	    }
-	}
-    }
-
-  SPI2_CTAR0 = SPI_CTAR_PDT(pdtResult);
-  SPI2_CTAR0 = SPI_CTAR_DT(dtResult);
 }
 
 /*!
