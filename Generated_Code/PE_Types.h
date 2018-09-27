@@ -64,6 +64,8 @@
 /* Standard ANSI C types */
 #include <stdint.h>
 
+#include "Cpu.h"
+
 #ifndef FALSE
   #define  FALSE  0x00u                /* Boolean value FALSE. FALSE is defined always as a zero value. */
 #endif
