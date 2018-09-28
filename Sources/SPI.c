@@ -207,21 +207,21 @@ void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
 void SPI_Exchange(const uint16_t dataTx, uint16_t* const dataRx)
 {
   //Wait until bus is idle
-  while (!(SPI2_SR & SPI_SR_TFFF_MASK))
+  while (!(SPI2_SR & SPI_SR_TFFF))
     {/*wait*/}
 
   //w1c
-  SPI2_SR |= SPI_SR_TFFF_MASK;
+  SPI2_SR |= SPI_SR_TFFF;
 
   SPI2_PUSHR = dataTx;
 
 
   //Wait until fifo is not full
-  while (!(SPI2_SR & SPI_SR_RFDF_MASK))
+  while (!(SPI2_SR & SPI_SR_RFDF))
     {/*wait*/}
 
   //w1c
-  SPI2_SR |= SPI_SR_RFDF_MASK;
+  SPI2_SR |= SPI_SR_RFDF;
 
   *dataRx = SPI2_POPR;
 }

@@ -181,8 +181,7 @@ static bool HandleProtocolPacket(void)
       if (Packet_Parameter1 == 1)
 	Packet_Put(0x0A, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3);
 
-      //else
-
+      else
 	/*set method*/
     }
   return FALSE;
@@ -192,7 +191,7 @@ static bool HandleAnologInputPacket(void)
 {
   if (Packet_Parameter1 >= 0 && Packet_Parameter1 <= 7)
     {
-     // Packet_Put(Packet_Parameter1);
+      Packet_Put(Packet_Parameter1);
     }
   return FALSE;
 }
