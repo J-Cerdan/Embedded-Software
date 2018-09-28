@@ -172,8 +172,7 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
   PORTD_GPCLR |= PORT_GPCLR_GPWE(13);
   PORTD_GPCLR |= PORT_GPCLR_GPWE(14);
   PORTD_GPCLR |= PORT_GPCLR_GPWE(15);
-  PORTE_GPCHR |= PORT_GPCHR_GPWE(16);
-  PORTE_GPCHR |= PORT_GPCHR_GPWE(18);
+
 
   //Initial settings for transmitting data
   SPI2_PUSHR &= ~SPI_PUSHR_CONT_MASK;
@@ -181,6 +180,8 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
   SPI2_PUSHR &= ~SPI_PUSHR_EOQ_MASK;
   SPI2_PUSHR &= ~SPI_PUSHR_CTCNT_MASK;
   SPI2_PUSHR |= SPI_PUSHR_PCS_MASK;
+  PORTE_GPCHR |= PORT_GPCHR_GPWE(16);
+  PORTE_GPCHR |= PORT_GPCHR_GPWE(18);
 
   //Enable Module
   SPI2_MCR &= ~SPI_MCR_HALT_MASK;
@@ -195,8 +196,8 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
  */
 void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
 {
-
-
+  PORTE_GPCHR |= PORT_GPCHR_GPWE(16);
+  PORTE_GPCHR |= PORT_GPCHR_GPWE(18);
 }
 
 /*! @brief Simultaneously transmits and receives data.
@@ -207,7 +208,7 @@ void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
 void SPI_Exchange(const uint16_t dataTx, uint16_t* const dataRx)
 {
   //Wait until bus is idle
-  while (!(SPI2_SR & SPI_SR_TFFF_MASK))
+  while ((SPI2_SR & SPI_SR_TFFF_MASK))
     {/*wait*/}
 
   //w1c
@@ -217,13 +218,14 @@ void SPI_Exchange(const uint16_t dataTx, uint16_t* const dataRx)
 
 
   //Wait until fifo is not full
-  while (!(SPI2_SR & SPI_SR_RFDF_MASK))
+  while ((SPI2_SR & SPI_SR_RFDF_MASK))
     {/*wait*/}
 
   //w1c
   SPI2_SR |= SPI_SR_RFDF_MASK;
 
   *dataRx = SPI2_POPR;
+
 }
 
 /*!

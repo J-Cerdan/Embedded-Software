@@ -47,6 +47,7 @@
 #include "RTC.h"
 #include "PIT.h"
 #include "FTM.h"
+#include "analog.h"
 
 
 //macros defined for determining which command protocol has been sent
@@ -315,7 +316,8 @@ static void TowerNumberModeInit(void)
  */
 static void PITCallback(void* arg)
 {
-  LEDs_Toggle(LED_GREEN);
+  //LEDs_Toggle(LED_GREEN);
+  Analog_Get((uint8_t) 0);
 
 }
 
@@ -380,6 +382,8 @@ int main(void)
   if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init())
     LEDs_On(LED_ORANGE);
 
+  Analog_Init(CPU_BUS_CLK_HZ);
+
   RTC_Init(RTCCallback, NULL);
   PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL);
   FTM_Init();
@@ -387,7 +391,7 @@ int main(void)
   __EI(); //enable interrupts
 
   //setup the PIT and call for Channel 0 to be set up
-  PIT_Set(500000000, TRUE);
+  PIT_Set(10000000, TRUE);
   CH01SecondTimerInit();
 
   //handles the initialization tower number and mode in the flash
