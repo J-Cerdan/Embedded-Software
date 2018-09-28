@@ -18,9 +18,10 @@
 #include "analog.h"
 #include "PE_Types.h"
 #include "SPI.h"
+#include "median.h"
 
 
-
+//used to determine the channel
 #define CH_ZERO 0
 #define CH_TWO 1
 #define CH_FOUR 2
@@ -30,7 +31,7 @@
 #define CH_FIVE 6
 #define CH_SEVEN 7
 
-
+//used to build the data that will be sent to the analog chip
 static const uint8_t Channel_Mask = 0x84;
 
 /*
@@ -51,6 +52,7 @@ TAnalogInput Analog_Input[ANALOG_NB_INPUTS];
  */
 bool Analog_Init(const uint32_t moduleClock)
 {
+  //build the TSPIModule struct to send to the SPI_init
   TSPIModule SPIValues;
   SPIValues.isMaster = TRUE;
   SPIValues.continuousClock = FALSE;
@@ -59,7 +61,14 @@ bool Analog_Init(const uint32_t moduleClock)
   SPIValues.LSBFirst = FALSE;
   SPIValues.baudRate = 1000000;
 
+  //call SPI_Init
   return SPI_Init(&SPIValues, moduleClock);
+}
+
+void getMedian(const uint8_t channelNb)
+{
+  Analog_Input[channelNb].oldValue = Analog_Input[channelNb].value;
+  Analog_Input[channelNb].value = Median_Filter(Analog_Input[channelNb].values, (uint32_t) ANALOG_WINDOW_SIZE);
 }
 
 /*! @brief Takes a sample from an analog input channel.
@@ -69,9 +78,16 @@ bool Analog_Init(const uint32_t moduleClock)
  */
 bool Analog_Get(const uint8_t channelNb)
 {
-  //1 _ _ _ 0 1 0 0 0x84
+  static uint8_t position0 = 0, position1 = 0;
+  //data to send to the analog chip
   uint8_t data;
 
+  if(channelNb)
+    Analog_Input[channelNb].putPtr = &(Analog_Input[channelNb].values[position1]);
+  else
+    Analog_Input[channelNb].putPtr = &(Analog_Input[channelNb].values[position0]);
+
+  //selecting the correct channel
   switch (channelNb)
   {
     case 0: data = Channel_Mask | (CH_ZERO << 4);
@@ -80,28 +96,27 @@ bool Analog_Get(const uint8_t channelNb)
     case 1: data = Channel_Mask | (CH_ONE << 4);
       break;
 
-    case 2: data = Channel_Mask | (CH_TWO << 4);
-      break;
-
-    case 3: data = Channel_Mask | (CH_THREE << 4);
-      break;
-
-    case 4: data = Channel_Mask | (CH_FOUR << 4);
-      break;
-
-    case 5: data = Channel_Mask | (CH_FIVE << 4);
-      break;
-
-    case 6: data = Channel_Mask | (CH_SIX << 4);
-      break;
-
-    case 7: data = Channel_Mask | (CH_SEVEN << 4);
-      break;
-
     default: return FALSE;
   }
 
+  //perform and exchange with the analog chip
   SPI_Exchange((uint16_t) data, Analog_Input[channelNb].putPtr);
+
+  SPI_Exchange((uint16_t) data, Analog_Input[channelNb].putPtr);
+
+  if(channelNb)
+    {
+      position1++;
+      if (position1 == 5)
+	position1 = 0;
+    }
+  else
+    {
+      position0++;
+        if (position0 == 5)
+  	position0 = 0;
+    }
+
 
   return TRUE;
 }

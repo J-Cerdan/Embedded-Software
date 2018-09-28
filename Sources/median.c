@@ -8,8 +8,6 @@
  *  @date 2015-10-12
  */
 
-#ifndef MEDIAN_H
-#define MEDIAN_H
 
 // New types
 #include "types.h"
@@ -21,12 +19,14 @@
  */
 int16_t Median_Filter(const int16_t array[], const uint32_t size)
 {
+  //copy the array
   int16_t sortedArray[size];
   for (uint32_t z = 0; z < size; z++)
     {
       sortedArray[z] = sortedArray[z];
     }
 
+  //sort it in accending order
   int16_t temp;
   for (uint32_t i = 0; i < size; i++)
     {
@@ -41,7 +41,7 @@ int16_t Median_Filter(const int16_t array[], const uint32_t size)
 	}
     }
 
-
+  //return the median depending on where the array is even or odd sized
   if (size % 2)
     {
       return sortedArray[size / 2];
@@ -52,4 +52,3 @@ int16_t Median_Filter(const int16_t array[], const uint32_t size)
     }
 }
 
-#endif
