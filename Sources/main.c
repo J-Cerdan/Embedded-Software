@@ -57,6 +57,8 @@
 #define PACKET_NUMBER 0x0B
 #define PACKET_TOWER_MODE 0x0D
 #define PACKET_SET_TIME 0x0C
+#define PACKET_PROTOCOL_MODE 0x0A
+#define PACKET_ANALOG_INPUT_VALUE 0x50
 
 //global private constant to store the baudRate
 static const uint32_t BaudRate = 115200;
@@ -113,7 +115,7 @@ static bool HandleReadPacket(void)
 
 /*! @brief Handles the "Version number" request packet
  *
- *  @param None.
+ *  @param specialPacket - Identifies if the program is currently in a startUp state
  *  @return bool - TRUE if the packet was placed in the FIFO successfully
  */
 static bool HandleVersionPacket(bool specialPacket)
@@ -127,7 +129,7 @@ static bool HandleVersionPacket(bool specialPacket)
 
 /*! @brief Handles the "Tower number" request packet
  *
- *  @param No param required.
+ *  @param specialPacket - Identifies if the program is currently in a startUp state
  *  @return bool - TRUE if the packet was placed in or read from the flash successfully
  */
 static bool HandleNumberPacket(bool specialPacket)
@@ -143,9 +145,9 @@ static bool HandleNumberPacket(bool specialPacket)
   return FALSE;
 }
 
-/*! @brief Handles the "Program" request packet
+/*! @brief Handles the "Tower Mode" request packet
  *
- *  @param startUp - Identifies if the program is currently in a startUp state
+ *  @param specialPacket - Identifies if the program is currently in a startUp state
  *  @return bool - TRUE if the packet was written to or read from the flash successfully
  */
 static bool HandleModePacket(bool specialPacket)
@@ -171,6 +173,29 @@ static bool HandleTimePacket(void)
     }
   return FALSE;
 }
+
+static bool HandleProtocolPacket(void)
+{
+  if (Packet_Parameter1 >= 1 && Packet_Parameter1 <=2 && Packet_Parameter2 >= 0 && Packet_Parameter2 <= 1 && Packet_Parameter3 == 0)
+    {
+      if (Packet_Parameter1 == 1)
+	Packet_Put(0x0A, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3);
+
+      else
+	/*set method*/
+    }
+  return FALSE;
+}
+
+static bool HandleAnologInputPacket(void)
+{
+  if (Packet_Parameter1 >= 0 && Packet_Parameter1 <= 7)
+    {
+      Packet_Put(Packet_Parameter1);
+    }
+  return FALSE;
+}
+
 
 /*! @brief Handles the "Special" request packet
  *
@@ -237,6 +262,14 @@ static void HandlePacket(void)
 
     case (PACKET_SET_TIME):
 	success = HandleTimePacket();
+    break;
+
+    case (PACKET_PROTOCOL_MODE):
+	success = HandleProtocolPacket();
+    break;
+
+    case (PACKET_ANALOG_INPUT_VALUE):
+	success = HandleAnologInputPacket();
     break;
 
 

@@ -172,6 +172,7 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
   PORTD_GPCLR |= PORT_GPCLR_GPWE(13);
   PORTD_GPCLR |= PORT_GPCLR_GPWE(14);
   PORTD_GPCLR |= PORT_GPCLR_GPWE(15);
+  PORTE_GPCHR |= PORT_GPCHR_GPWE(16);
   PORTE_GPCHR |= PORT_GPCHR_GPWE(18);
 
   //Initial settings for transmitting data
@@ -180,6 +181,9 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
   SPI2_PUSHR &= ~SPI_PUSHR_EOQ_MASK;
   SPI2_PUSHR &= ~SPI_PUSHR_CTCNT_MASK;
   SPI2_PUSHR |= SPI_PUSHR_PCS_MASK;
+
+  //Enable Module
+  SPI2_MCR &= ~SPI_MCR_HALT_MASK;
 
 
   return TRUE;
@@ -191,6 +195,7 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
  */
 void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
 {
+
 
 }
 
