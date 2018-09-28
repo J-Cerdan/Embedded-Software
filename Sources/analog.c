@@ -19,6 +19,20 @@
 #include "PE_Types.h"
 #include "SPI.h"
 
+
+
+#define CH_ZERO 0
+#define CH_TWO 1
+#define CH_FOUR 2
+#define CH_SIX 3
+#define CH_ONE 4
+#define CH_THREE 5
+#define CH_FIVE 6
+#define CH_SEVEN 7
+
+
+static const uint8_t Channel_Mask = 0x84;
+
 /*
  * {
   int16union_t value;                  !< The current "processed" analog value (the user updates this value).
@@ -55,6 +69,40 @@ bool Analog_Init(const uint32_t moduleClock)
  */
 bool Analog_Get(const uint8_t channelNb)
 {
+  //1 _ _ _ 0 1 0 0 0x84
+  uint8_t data;
+
+  switch (channelNb)
+  {
+    case 0: data = Channel_Mask | (CH_ZERO << 4);
+      break;
+
+    case 1: data = Channel_Mask | (CH_ONE << 4);
+      break;
+
+    case 2: data = Channel_Mask | (CH_TWO << 4);
+      break;
+
+    case 3: data = Channel_Mask | (CH_THREE << 4);
+      break;
+
+    case 4: data = Channel_Mask | (CH_FOUR << 4);
+      break;
+
+    case 5: data = Channel_Mask | (CH_FIVE << 4);
+      break;
+
+    case 6: data = Channel_Mask | (CH_SIX << 4);
+      break;
+
+    case 7: data = Channel_Mask | (CH_SEVEN << 4);
+      break;
+
+    default: return FALSE;
+  }
+
+  SPI_Exchange((uint16_t) data, Analog_Input[channelNb].putPtr);
+
   return TRUE;
 }
 
