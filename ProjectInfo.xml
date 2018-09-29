@@ -35,55 +35,70 @@
     <FLASHsize>1M</FLASHsize>
   </PROCESSOR>
   <PATHS>
-    <LinkerCommandFile>D:\Embedded\Lab3-dev\Project_Settings\Linker_Files\ProcessorExpert.ld</LinkerCommandFile>
+    <LinkerCommandFile>D:\Embedded\Lab4\Project_Settings\Linker_Files\ProcessorExpert.ld</LinkerCommandFile>
     <IncludePaths>
-      <Path>D:\Embedded\Lab3-dev\Static_Code\PDD\</Path>
-      <Path>D:\Embedded\Lab3-dev\Static_Code\IO_Map\</Path>
-      <Path>D:\Embedded\Lab3-dev\Sources\</Path>
-      <Path>D:\Embedded\Lab3-dev\Generated_Code\</Path>
+      <Path>D:\Embedded\Lab4\Static_Code\PDD\</Path>
+      <Path>D:\Embedded\Lab4\Static_Code\IO_Map\</Path>
+      <Path>D:\Embedded\Lab4\Sources\</Path>
+      <Path>D:\Embedded\Lab4\Generated_Code\</Path>
     </IncludePaths>
     <SourceCodePaths>
-      <Path>D:\Embedded\Lab3-dev\Generated_Code\</Path>
-      <Path>D:\Embedded\Lab3-dev\Project_Settings\Startup_Code\</Path>
-      <Path>D:\Embedded\Lab3-dev\Sources\</Path>
+      <Path>D:\Embedded\Lab4\Generated_Code\</Path>
+      <Path>D:\Embedded\Lab4\Project_Settings\Startup_Code\</Path>
+      <Path>D:\Embedded\Lab4\Sources\</Path>
     </SourceCodePaths>
   </PATHS>
   <FILES>
     <GeneratedCs>
-      <PathName>D:\Embedded\Lab3-dev\Generated_Code\Cpu.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Generated_Code\PE_LDD.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Generated_Code\Vectors.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Project_Settings\Startup_Code\startup.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\Events.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\FIFO.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\FTM.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\LEDs.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\PIT.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\Packet.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\RTC.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\UART.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\flash.c</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\main.c</PathName>
+      <PathName>D:\Embedded\Lab4\Generated_Code\Cpu.c</PathName>
+      <PathName>D:\Embedded\Lab4\Generated_Code\PE_LDD.c</PathName>
+      <PathName>D:\Embedded\Lab4\Generated_Code\Vectors.c</PathName>
+      <PathName>D:\Embedded\Lab4\Project_Settings\Startup_Code\startup.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\Events.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\FIFO.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\FTM.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\LEDs.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\PIT.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\Packet.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\RTC.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\SPI.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\UART.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\analog.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\flash.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\main.c</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\median.c</PathName>
     </GeneratedCs>
     <GeneratedHs>
-      <PathName>D:\Embedded\Lab3-dev\Generated_Code\Cpu.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Generated_Code\IO_Map.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Generated_Code\PE_Const.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Generated_Code\PE_Error.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Generated_Code\PE_LDD.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Generated_Code\PE_Types.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\Events.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\FIFO.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\FTM.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\Flash.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\LEDs.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\PIT.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\RTC.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\UART.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\packet.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Sources\types.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Static_Code\IO_Map\MK70F12.h</PathName>
-      <PathName>D:\Embedded\Lab3-dev\Static_Code\PDD\PDD_Types.h</PathName>
+      <PathName>D:\Embedded\Lab4\Generated_Code\Cpu.h</PathName>
+      <PathName>D:\Embedded\Lab4\Generated_Code\IO_Map.h</PathName>
+      <PathName>D:\Embedded\Lab4\Generated_Code\PE_Const.h</PathName>
+      <PathName>D:\Embedded\Lab4\Generated_Code\PE_Error.h</PathName>
+      <PathName>D:\Embedded\Lab4\Generated_Code\PE_LDD.h</PathName>
+      <PathName>D:\Embedded\Lab4\Generated_Code\PE_Types.h</PathName>
+      <PathName>D:\Embedded\Lab4\Library\FIFO.h</PathName>
+      <PathName>D:\Embedded\Lab4\Library\FTM.h</PathName>
+      <PathName>D:\Embedded\Lab4\Library\Flash.h</PathName>
+      <PathName>D:\Embedded\Lab4\Library\LEDs.h</PathName>
+      <PathName>D:\Embedded\Lab4\Library\PIT.h</PathName>
+      <PathName>D:\Embedded\Lab4\Library\RTC.h</PathName>
+      <PathName>D:\Embedded\Lab4\Library\UART.h</PathName>
+      <PathName>D:\Embedded\Lab4\Library\packet.h</PathName>
+      <PathName>D:\Embedded\Lab4\Library\types.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\Events.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\FIFO.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\FTM.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\Flash.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\LEDs.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\PIT.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\RTC.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\SPI.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\UART.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\analog.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\median.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\packet.h</PathName>
+      <PathName>D:\Embedded\Lab4\Sources\types.h</PathName>
+      <PathName>D:\Embedded\Lab4\Static_Code\IO_Map\MK70F12.h</PathName>
+      <PathName>D:\Embedded\Lab4\Static_Code\PDD\PDD_Types.h</PathName>
     </GeneratedHs>
   </FILES>
   <OPTIONS>

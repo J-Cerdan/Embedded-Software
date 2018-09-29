@@ -23,7 +23,7 @@ int16_t Median_Filter(const int16_t array[], const uint32_t size)
   int16_t sortedArray[size];
   for (uint32_t z = 0; z < size; z++)
     {
-      sortedArray[z] = sortedArray[z];
+      sortedArray[z] = array[z];
     }
 
   //sort it in accending order

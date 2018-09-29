@@ -193,7 +193,7 @@ static bool HandleAnologInputPacket(void)
 {
   if (Packet_Parameter1 >= 0 && Packet_Parameter1 <= 7)
     {
-     // Packet_Put(Packet_Parameter1);
+      //Packet_Put(0x50, );
     }
   return FALSE;
 }
@@ -318,6 +318,8 @@ static void PITCallback(void* arg)
 {
   //LEDs_Toggle(LED_GREEN);
   Analog_Get((uint8_t) 0);
+
+  Packet_Put(0x50, 0x00, Analog_Input[0].value.s.Lo, Analog_Input[0].value.s.Hi);
 
 }
 

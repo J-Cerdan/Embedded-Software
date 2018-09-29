@@ -19,22 +19,30 @@
 #include "MK70F12.h"
 #include "SPI.h"
 
+uint32union_t PUSHR_DATA;
+
 void CalculateDelay(uint32_t moduleClock)
 {
-  uint8_t outcome, lowestOutcome, pdtResult, dtResult;
+  uint16_t outcome = 0;
+  uint8_t microsecondsClock;
+  uint16_t lowestOutcome = 20000;
+  uint8_t pdtResult = 0;
+  uint8_t dtResult = 0;
   uint8_t pdt[] = {1,3,5,7};
   uint32_t dt[] = {2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536};
 
+  microsecondsClock = 100000000 /moduleClock;
+
   for (uint8_t i = 0; i<sizeof(pdt); i++)
     {
-      for (uint8_t j = 0; j<sizeof(dt); j++)
+      for (uint8_t j = 0; j<(sizeof(dt) / 4); j++)
 	{
-	  outcome = abs(200000-(moduleClock*pdt[i]*dt[j])); //200000 micro to hz
+	  outcome = (microsecondsClock*pdt[i]*dt[j]) - 500; //200000 micro to hz
 
 	  if (outcome < lowestOutcome)
 	    {
-	      pdtResult = pdt[i];
-	      dtResult = dt[j];
+	      pdtResult = i;
+	      dtResult = j;
 	      lowestOutcome = outcome;
 	    }
 	}
@@ -42,35 +50,40 @@ void CalculateDelay(uint32_t moduleClock)
 
 
 
-  SPI2_CTAR0 = SPI_CTAR_PDT(pdtResult);
-  SPI2_CTAR0 = SPI_CTAR_DT(dtResult);
+
+
+  SPI2_CTAR0 |= SPI_CTAR_PDT(pdtResult);
+  SPI2_CTAR0 |= SPI_CTAR_DT(dtResult);
 }
 
 void CalculateBaud(TSPIModule const aSPIModule, uint32_t moduleClock)
 {
-  uint8_t outcome, lowestOutcome, pbrResult, brResult;
+  uint32_t outcome = 0;
+  uint32_t lowestOutcome = 10000000;
+  uint8_t pbrResult = 0;
+  uint8_t brResult = 0;
   uint8_t dbr = 0;
   uint8_t pbr[] = {2,3,5,7};
   uint16_t br[] = {2,4,6,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768};
 
-  for (uint8_t i = 0; i<sizeof(pbr); i++)
+  for (uint8_t i = 0; i < sizeof(pbr); i++)
     {
-      for (uint8_t j = 0; j<sizeof(br); j++)
+      for (uint8_t j = 0; j < (sizeof(br) / 2); j++)
 	{
-	  outcome = abs(aSPIModule.baudRate - (moduleClock*pbr[i]*((1+dbr)/br[j])));
+	  outcome = ((moduleClock * (1+dbr)) / (pbr[i] * br[j])) - aSPIModule.baudRate;
 
 	  if (outcome < lowestOutcome)
 	    {
-	      pbrResult = pbr[i];
-	      brResult = br[j];
+	      pbrResult = i;
+	      brResult = j;
 	      lowestOutcome = outcome;
 	    }
 	}
     }
 
   SPI2_CTAR0 &= ~SPI_CTAR_DBR_MASK;
-  SPI2_CTAR0 = SPI_CTAR_PBR(pbrResult);
-  SPI2_CTAR0 = SPI_CTAR_BR(brResult);
+  SPI2_CTAR0 |= SPI_CTAR_PBR(pbrResult);
+  SPI2_CTAR0 |= SPI_CTAR_BR(brResult);
 }
 
 /*! @brief Sets up the SPI before first use.
@@ -89,14 +102,39 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
   SIM_SCGC5 |= SIM_SCGC5_PORTD_MASK; //slave in, slave out selection
   SIM_SCGC5 |= SIM_SCGC5_PORTE_MASK; //chip select 17/18
 
+  //Initialise values on any chip select pins
+  PORTD_PCR11 |= PORT_PCR_MUX(2);
+  PORTD_PCR12 |= PORT_PCR_MUX(2);
+  PORTD_PCR13 |= PORT_PCR_MUX(2);
+  PORTD_PCR14 |= PORT_PCR_MUX(2);
+  PORTD_PCR15 |= PORT_PCR_MUX(2);
+
+  //Enable ports for GPIO 7,8,9
+  PORTE_PCR5 |= PORT_PCR_MUX(1);
+  PORTE_PCR27 |= PORT_PCR_MUX(1);
+  //PORTE_PCR18 |= PORT_PCR_MUX(1);
+
+  GPIOE_PCOR = (1 << 27) | (1 << 5);
+  GPIOE_PDDR |= (1 << 27) | (1 << 5);
 
   //Module Configuration Registers (MCR)
   //Control and Transfer Attributes Registers (CTAR)
-  //NOTE: CTAR should not be written while module is in running state (Fixed Value?)
+  //NOTE: CTAR should not be written while module is in running state
+
+  SPI2_PUSHR |= SPI_PUSHR_CTAS(0); //Select CTAR0
+
+  SPI2_MCR |= SPI_MCR_FRZ_MASK;
+  SPI2_MCR &= ~SPI_MCR_MDIS_MASK;
+  SPI2_MCR |= SPI_MCR_PCSIS(1);
+  SPI2_MCR |= SPI_MCR_DIS_TXF_MASK;
+  SPI2_MCR |= SPI_MCR_DIS_RXF_MASK;
+
+
+
 
   if (aSPIModule != NULL)
     {
-      if (aSPIModule->isMaster == TRUE)
+      if (aSPIModule->isMaster)
 	{
 	  //Set SPI to Master
 	  SPI2_MCR |= SPI_MCR_MSTR_MASK;
@@ -106,88 +144,66 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
 	  SPI2_MCR &= ~SPI_MCR_MSTR_MASK;
 	}
 
-      if (aSPIModule->continuousClock == FALSE)
+      if (aSPIModule->continuousClock)
+	{
+	  SPI2_MCR |= SPI_MCR_CONT_SCKE_MASK;
+	}
+      else
 	{
 	  //Disable continuous clock
 	  SPI2_MCR &= ~SPI_MCR_CONT_SCKE_MASK;
 	}
-      else
-	{
-	  SPI2_MCR |= SPI_MCR_CONT_SCKE_MASK;
-	}
 
-      if (aSPIModule->inactiveHighClock == FALSE)
+      if (aSPIModule->inactiveHighClock)
+      	{
+	  SPI2_CTAR0 |= SPI_CTAR_CPOL_MASK;
+      	}
+      else
       	{
 	  //Set Clock polarity to inactive low
 	  SPI2_CTAR0 &= ~SPI_CTAR_CPOL_MASK;
       	}
-      else
-      	{
-	  SPI2_CTAR0 |= SPI_CTAR_CPOL_MASK;
-      	}
 
-      if (aSPIModule->changedOnLeadingClockEdge == FALSE)
+      if (aSPIModule->changedOnLeadingClockEdge)
+      	{
+	  SPI2_CTAR0 |= SPI_CTAR_CPHA_MASK;
+      	}
+      else
       	{
 	  //Set data capture to leading edge
 	  SPI2_CTAR0 &= ~SPI_CTAR_CPHA_MASK;
       	}
-      else
-      	{
-	  SPI2_CTAR0 |= SPI_CTAR_CPHA_MASK;
-      	}
 
-      if (aSPIModule->LSBFirst == FALSE)
+      if (aSPIModule->LSBFirst)
+      	{
+	  SPI2_CTAR0 |= SPI_CTAR_LSBFE_MASK;
+      	}
+      else
       	{
 	  //Set MSB first
 	  SPI2_CTAR0 &= ~SPI_CTAR_LSBFE_MASK;
-      	}
-      else
-      	{
-	  SPI2_CTAR0 |= SPI_CTAR_LSBFE_MASK;
+
       	}
 
       SPI2_CTAR0 |= SPI_CTAR_FMSZ(15);
 
     }
 
-  //Exhaustive search? for both delay and baud
-  //baud rate = (module clock(50000000) x PBR) x [(1+DBR)/BR];
-  //aSPIModule->baudRate
 
   CalculateDelay(moduleClock);
   CalculateBaud(*aSPIModule, moduleClock);
 
-  //Set Delay After Transfer Scalers
-  //SPI2_CTAR0 |= SPI_CTAR_PDT(pdtResult);
-  //SPI2_CTAR0 |= SPI_CTAR_DT(dtResult);
-
-  //Set baud rate to 1Mbit/s ?Need to calculate?
-  //SPI2_CTAR0 |= SPI_CTAR_DBR(dbr);
-  //SPI2_CTAR0 |= SPI_CTAR_PBR(pbrResult);
-  //SPI2_CTAR0 |= SPI_CTAR_BR(brResult);
-
-  //Initialise values on any chip select pins
-  PORTD_GPCLR |= PORT_GPCLR_GPWE(11);
-  PORTD_GPCLR |= PORT_GPCLR_GPWE(12);
-  PORTD_GPCLR |= PORT_GPCLR_GPWE(13);
-  PORTD_GPCLR |= PORT_GPCLR_GPWE(14);
-  PORTD_GPCLR |= PORT_GPCLR_GPWE(15);
 
 
-  //Initial settings for transmitting data
-  SPI2_PUSHR &= ~SPI_PUSHR_CONT_MASK;
-  SPI2_PUSHR &= ~SPI_PUSHR_CTAS_MASK;
-  SPI2_PUSHR &= ~SPI_PUSHR_EOQ_MASK;
-  SPI2_PUSHR &= ~SPI_PUSHR_CTCNT_MASK;
-  SPI2_PUSHR |= SPI_PUSHR_PCS_MASK;
-  PORTE_GPCHR |= PORT_GPCHR_GPWE(16);
-  PORTE_GPCHR |= PORT_GPCHR_GPWE(18);
+  //set command values for PUSHR register for later use
+  PUSHR_DATA.l = 0x00010000;
 
   //Enable Module
+  //SPI2_MCR &= ~SPI_MCR_FRZ_MASK;
   SPI2_MCR &= ~SPI_MCR_HALT_MASK;
 
-
   return TRUE;
+
 }
 
 /*! @brief Selects the current slave device
@@ -196,8 +212,35 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
  */
 void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
 {
-  PORTE_GPCHR |= PORT_GPCHR_GPWE(16);
-  PORTE_GPCHR |= PORT_GPCHR_GPWE(18);
+  //GPIO 7 & 8 Masks
+  uint32_t GPIO7 = 1 << 27;
+  uint32_t GPIO8 = 1 << 5;
+  //uint32_t GPIO9 = 0x2000;
+
+  //GPIOE_PSOR |= GPIO9;
+
+  switch(slaveAddress)
+  {
+    case 0://LTC2704
+      GPIOE_PCOR |= GPIO7;
+      GPIOE_PCOR |= GPIO8;
+      break;
+
+    case 1://LTC2600
+      GPIOE_PSOR |= GPIO7;
+      GPIOE_PCOR |= GPIO8;
+      break;
+
+    case 2://LTC2498
+      GPIOE_PCOR |= GPIO7;
+      GPIOE_PSOR |= GPIO8;
+      break;
+
+    case 3://LTC1859
+      GPIOE_PSOR |= GPIO7;
+      GPIOE_PSOR |= GPIO8;
+      break;
+  }
 }
 
 /*! @brief Simultaneously transmits and receives data.
@@ -207,24 +250,32 @@ void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
  */
 void SPI_Exchange(const uint16_t dataTx, uint16_t* const dataRx)
 {
+  uint16_t SPIData;
+
+  PUSHR_DATA.s.Lo = dataTx;
+
   //Wait until bus is idle
-  while ((SPI2_SR & SPI_SR_TFFF_MASK))
+  while (!(SPI2_SR & SPI_SR_TFFF_MASK))
     {/*wait*/}
 
   //w1c
   SPI2_SR |= SPI_SR_TFFF_MASK;
 
-  SPI2_PUSHR = dataTx;
+  SPI2_PUSHR = PUSHR_DATA.l;
+
+  //SPI2_MCR &= ~SPI_MCR_HALT_MASK;
 
 
-  //Wait until fifo is not full
-  while ((SPI2_SR & SPI_SR_RFDF_MASK))
+  //Wait until fifo is not empty
+  while (!(SPI2_SR & SPI_SR_RFDF_MASK))
     {/*wait*/}
+
+  //SPI2_MCR |= SPI_MCR_HALT_MASK;
+  SPIData = (uint16_t) SPI2_POPR;
+  *dataRx = SPIData;
 
   //w1c
   SPI2_SR |= SPI_SR_RFDF_MASK;
-
-  *dataRx = SPI2_POPR;
 
 }
 
