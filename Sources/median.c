@@ -4,10 +4,13 @@
  *
  *  This contains the functions for performing a median filter on half-word-sized data.
  *
- *  @author PMcL
- *  @date 2015-10-12
+ *  @author Amir Hussein & Joseph Cerdan
+ *  @date 2018-10-01
  */
-
+/*!
+**  @addtogroup median_module median module documentation
+**  @{
+*/
 
 // New types
 #include "types.h"
@@ -52,3 +55,6 @@ int16_t Median_Filter(const int16_t array[], const uint32_t size)
     }
 }
 
+/*!
+** @}
+*/

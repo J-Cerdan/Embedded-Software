@@ -13,7 +13,6 @@
 */
 
 // new types
-#include <stdlib.h>
 #include "types.h"
 #include "PE_Types.h"
 #include "MK70F12.h"
