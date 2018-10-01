@@ -7,10 +7,13 @@
  *  This contains the functions for writing analog values to the LTC2704 DAC on the TWR-ADCDAC-LTC board.
  *  The DAC is 16-bit, and configured with a bipolar voltage range of +/- 10V.
  *
- *  @author PMcL
- *  @date 2016-09-23
+ *  @author Amir Hussein & Joseph Cerdan
+ *  @date 2018-09-19
  */
-
+/*!
+**  @addtogroup analog_module analog module documentation
+**  @{
+*/
 
 
 // new types
@@ -21,37 +24,30 @@
 #include "median.h"
 
 
-//used to determine the channel
+//used to determine channel 0 or 1
 #define CH_ZERO 0
-#define CH_TWO 1
-#define CH_FOUR 2
-#define CH_SIX 3
 #define CH_ONE 4
-#define CH_THREE 5
-#define CH_FIVE 6
-#define CH_SEVEN 7
 
 //used to build the data that will be sent to the analog chip
 static const uint16_t Channel_Mask = 0x8400;
 
 static const uint8_t Analog_Address = 0x3;
 
-/*
- * {
-  int16union_t value;                  !< The current "processed" analog value (the user updates this value).
-  int16union_t oldValue;               !< The previous "processed" analog value (the user updates this value).
-  int16_t values[ANALOG_WINDOW_SIZE];  !< An array of sample values to create a "sliding window".
-  int16_t* putPtr;                     !< A pointer into the array of the last sample taken.
-} TAnalogInput
- */
-
 TAnalogInput Analog_Input[ANALOG_NB_INPUTS];
 
-/*! @brief Sets up the ADC before first use.
+
+/*! @brief Function to obtain and store median values
  *
- *  @param moduleClock The module clock rate in Hz.
- *  @return bool - true if the UART was successfully initialized.
+ *  @param channelNb is the number of the analog input channel to sample.
+ *  @return none.
  */
+void getMedian(const uint8_t channelNb)
+{
+  Analog_Input[channelNb].oldValue = Analog_Input[channelNb].value;
+  Analog_Input[channelNb].value.l = Median_Filter(Analog_Input[channelNb].values, (uint32_t) ANALOG_WINDOW_SIZE);
+}
+
+
 bool Analog_Init(const uint32_t moduleClock)
 {
 
@@ -83,17 +79,7 @@ bool Analog_Init(const uint32_t moduleClock)
   return SPI_Init(&SPIValues, moduleClock);
 }
 
-void getMedian(const uint8_t channelNb)
-{
-  Analog_Input[channelNb].oldValue = Analog_Input[channelNb].value;
-  Analog_Input[channelNb].value.l = Median_Filter(Analog_Input[channelNb].values, (uint32_t) ANALOG_WINDOW_SIZE);
-}
 
-/*! @brief Takes a sample from an analog input channel.
- *
- *  @param channelNb is the number of the analog input channel to sample.
- *  @return bool - true if the channel was read successfully.
- */
 bool Analog_Get(const uint8_t channelNb)
 {
   static uint8_t position0 = 0, position1 = 0;
@@ -141,4 +127,8 @@ bool Analog_Get(const uint8_t channelNb)
 
   return TRUE;
 }
+
+/*!
+** @}
+*/
 

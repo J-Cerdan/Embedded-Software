@@ -10,6 +10,10 @@
  *  @author PMcL
  *  @date 2016-09-23
  */
+/*!
+**  @addtogroup analog_module analog module documentation
+**  @{
+*/
 
 #ifndef ANALOG_H
 #define ANALOG_H
@@ -52,3 +56,7 @@ bool Analog_Init(const uint32_t moduleClock);
 bool Analog_Get(const uint8_t channelNb);
 
 #endif
+
+/*!
+** @}
+*/

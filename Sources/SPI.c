@@ -19,25 +19,37 @@
 #include "MK70F12.h"
 #include "SPI.h"
 
+//Variable to store data and commands
 uint32union_t PUSHR_DATA;
 
+/*! @brief Exhaustive search function to find PDT and DT values.
+ *
+ *  @param moduleClock The module clock in Hz.
+ *  @return none.
+ */
 void CalculateDelay(uint32_t moduleClock)
 {
-  uint16_t outcome = 0;
+  //Initialisation of variables
   uint8_t microsecondsClock;
-  uint16_t lowestOutcome = 20000;
+
   uint8_t pdtResult = 0;
   uint8_t dtResult = 0;
+  uint16_t outcome = 0;
+  uint16_t lowestOutcome = 20000;
+
+  //All possible pdt and dt values in respective arrays
   uint8_t pdt[] = {1,3,5,7};
   uint32_t dt[] = {2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536};
 
-  microsecondsClock = 100000000 /moduleClock;
+  //Module clock Hz to microseconds
+  microsecondsClock = 100000000/moduleClock;
 
   for (uint8_t i = 0; i<sizeof(pdt); i++)
     {
       for (uint8_t j = 0; j<(sizeof(dt) / 4); j++)
 	{
-	  outcome = (microsecondsClock*pdt[i]*dt[j]) - 500; //200000 micro to hz
+	  //Comparison of calculated to desired value
+	  outcome = (microsecondsClock*pdt[i]*dt[j]) - 500;
 
 	  if (outcome < lowestOutcome)
 	    {
@@ -48,21 +60,27 @@ void CalculateDelay(uint32_t moduleClock)
 	}
     }
 
-
-
-
-
+  //Store pdt and dt resulting values into CTAR0.
   SPI2_CTAR0 |= SPI_CTAR_PDT(pdtResult);
   SPI2_CTAR0 |= SPI_CTAR_DT(dtResult);
 }
 
+/*! @brief Exhaustive search function to find PBR and BR values.
+ *
+ *  @param aSPIModule is a structure containing the operating conditions for the module.
+ *  @param moduleClock The module clock in Hz.
+ *  @return none.
+ */
 void CalculateBaud(TSPIModule const aSPIModule, uint32_t moduleClock)
 {
-  uint32_t outcome = 0;
-  uint32_t lowestOutcome = 10000000;
+  //Initialisation of variables
   uint8_t pbrResult = 0;
   uint8_t brResult = 0;
   uint8_t dbr = 0;
+  uint32_t outcome = 0;
+  uint32_t lowestOutcome = 10000000;
+
+  //All possible pbr and br values in respective arrays
   uint8_t pbr[] = {2,3,5,7};
   uint16_t br[] = {2,4,6,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768};
 
@@ -70,6 +88,7 @@ void CalculateBaud(TSPIModule const aSPIModule, uint32_t moduleClock)
     {
       for (uint8_t j = 0; j < (sizeof(br) / 2); j++)
 	{
+	  //Comparison of calculated to desired value
 	  outcome = ((moduleClock * (1+dbr)) / (pbr[i] * br[j])) - aSPIModule.baudRate;
 
 	  if (outcome < lowestOutcome)
@@ -81,17 +100,13 @@ void CalculateBaud(TSPIModule const aSPIModule, uint32_t moduleClock)
 	}
     }
 
+  //Store pdt and dt resulting values into CTAR0.
   SPI2_CTAR0 &= ~SPI_CTAR_DBR_MASK;
   SPI2_CTAR0 |= SPI_CTAR_PBR(pbrResult);
   SPI2_CTAR0 |= SPI_CTAR_BR(brResult);
 }
 
-/*! @brief Sets up the SPI before first use.
- *
- *  @param aSPIModule is a structure containing the operating conditions for the module.
- *  @param moduleClock The module clock in Hz.
- *  @return BOOL - true if the SPI module was successfully initialized.
- */
+
 bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
 {
 
@@ -109,11 +124,11 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
   PORTD_PCR14 |= PORT_PCR_MUX(2);
   PORTD_PCR15 |= PORT_PCR_MUX(2);
 
-  //Enable ports for GPIO 7,8,9
+  //Enable ports for GPIO 7 and 8
   PORTE_PCR5 |= PORT_PCR_MUX(1);
   PORTE_PCR27 |= PORT_PCR_MUX(1);
-  //PORTE_PCR18 |= PORT_PCR_MUX(1);
 
+  //GPIO ports to clear and enable output
   GPIOE_PCOR = (1 << 27) | (1 << 5);
   GPIOE_PDDR |= (1 << 27) | (1 << 5);
 
@@ -121,17 +136,17 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
   //Control and Transfer Attributes Registers (CTAR)
   //NOTE: CTAR should not be written while module is in running state
 
-  SPI2_PUSHR |= SPI_PUSHR_CTAS(0); //Select CTAR0
+  //Select CTAR0
+  SPI2_PUSHR |= SPI_PUSHR_CTAS(0);
 
+  //MCR Configurations
   SPI2_MCR |= SPI_MCR_FRZ_MASK;
   SPI2_MCR &= ~SPI_MCR_MDIS_MASK;
   SPI2_MCR |= SPI_MCR_PCSIS(1);
   SPI2_MCR |= SPI_MCR_DIS_TXF_MASK;
   SPI2_MCR |= SPI_MCR_DIS_RXF_MASK;
 
-
-
-
+  //SPI Module configurations
   if (aSPIModule != NULL)
     {
       if (aSPIModule->isMaster)
@@ -189,69 +204,60 @@ bool SPI_Init(const TSPIModule* const aSPIModule, const uint32_t moduleClock)
 
     }
 
-
+  //Calculate delay and baud rate to input into registers
   CalculateDelay(moduleClock);
   CalculateBaud(*aSPIModule, moduleClock);
 
-
-
-  //set command values for PUSHR register for later use
+  //Set command values for PUSHR register for later use
   PUSHR_DATA.l = 0x00010000;
 
   //Enable Module
-  //SPI2_MCR &= ~SPI_MCR_FRZ_MASK;
   SPI2_MCR &= ~SPI_MCR_HALT_MASK;
 
   return TRUE;
 
 }
 
-/*! @brief Selects the current slave device
- *
- * @param slaveAddress The slave device address.
- */
+
 void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
 {
   //GPIO 7 & 8 Masks
   uint32_t GPIO7 = 1 << 27;
   uint32_t GPIO8 = 1 << 5;
-  //uint32_t GPIO9 = 0x2000;
 
-  //GPIOE_PSOR |= GPIO9;
 
   switch(slaveAddress)
   {
-    case 0://LTC2704
-      GPIOE_PCOR |= GPIO7;
-      GPIOE_PCOR |= GPIO8;
+    //LTC2704
+    case 0:
+      GPIOE_PCOR |= (GPIO7 | GPIO8);
       break;
 
-    case 1://LTC2600
+    //LTC2600
+    case 1:
       GPIOE_PSOR |= GPIO7;
       GPIOE_PCOR |= GPIO8;
       break;
 
-    case 2://LTC2498
+    //LTC2498
+    case 2:
       GPIOE_PCOR |= GPIO7;
       GPIOE_PSOR |= GPIO8;
       break;
 
-    case 3://LTC1859
-      GPIOE_PSOR |= GPIO7;
-      GPIOE_PSOR |= GPIO8;
+    //LTC1859
+    case 3:
+      GPIOE_PSOR |= (GPIO7 | GPIO8);
       break;
   }
 }
 
-/*! @brief Simultaneously transmits and receives data.
- *
- *  @param dataTx is data to transmit.
- *  @param dataRx points to where the received data will be stored.
- */
+
 void SPI_Exchange(const uint16_t dataTx, uint16_t* const dataRx)
 {
   uint16_t SPIData;
 
+  //Stores data to send
   PUSHR_DATA.s.Lo = dataTx;
 
   //Wait until bus is idle
@@ -261,16 +267,14 @@ void SPI_Exchange(const uint16_t dataTx, uint16_t* const dataRx)
   //w1c
   SPI2_SR |= SPI_SR_TFFF_MASK;
 
+  //Push data and command to PUSHR
   SPI2_PUSHR = PUSHR_DATA.l;
-
-  //SPI2_MCR &= ~SPI_MCR_HALT_MASK;
 
 
   //Wait until fifo is not empty
   while (!(SPI2_SR & SPI_SR_RFDF_MASK))
     {/*wait*/}
 
-  //SPI2_MCR |= SPI_MCR_HALT_MASK;
   SPIData = (uint16_t) SPI2_POPR;
   *dataRx = SPIData;
 
