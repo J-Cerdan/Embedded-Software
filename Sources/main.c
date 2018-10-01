@@ -1,6 +1,6 @@
 /* ###################################################################
 **     Filename    : main.c
-**     Project     : Lab3
+**     Project     : Lab4
 **     Processor   : MK70FN1M0VMJ12
 **     Version     : Driver 01.01
 **     Compiler    : GNU C Compiler
@@ -15,7 +15,7 @@
 ** ###################################################################*/
 /*!
 ** @file main.c
-** @version 3.0
+** @version 4.0
 ** @brief
 **         Main module.
 **         This module contains user's application code.
@@ -47,6 +47,7 @@
 #include "RTC.h"
 #include "PIT.h"
 #include "FTM.h"
+#include "analog.h"
 
 
 //macros defined for determining which command protocol has been sent
@@ -57,6 +58,8 @@
 #define PACKET_NUMBER 0x0B
 #define PACKET_TOWER_MODE 0x0D
 #define PACKET_SET_TIME 0x0C
+#define PACKET_PROTOCOL_MODE 0x0A
+#define PACKET_ANALOG_INPUT_VALUE 0x50
 
 //global private constant to store the baudRate
 static const uint32_t BaudRate = 115200;
@@ -68,6 +71,10 @@ static const uint8_t MajorTowerVersion = 0x01;
 static const uint8_t MinorTowerVersion = 0x00;
 //TFTMChannel variable for Channel 0
 static TFTMChannel Ch0;
+//store channel to be synchronous or asynchronous
+static bool synchronous = FALSE;
+//LTC1859 channel to be used
+static const uint8_t ADCChannel = 0;
 
 
 
@@ -105,7 +112,7 @@ static bool HandleReadPacket(void)
   //Ensures incoming packet is valid
   if (Packet_Parameter1 < 0x08 && Packet_Parameter2 == 0x00 && Packet_Parameter3 == 0x00)
     {
-      return Packet_Put(0x08, Packet_Parameter1, Packet_Parameter2, _FB(address + Packet_Parameter1));
+      return Packet_Put(PACKET_READ_BYTE, Packet_Parameter1, Packet_Parameter2, _FB(address + Packet_Parameter1));
     }
 
   return FALSE;
@@ -113,21 +120,21 @@ static bool HandleReadPacket(void)
 
 /*! @brief Handles the "Version number" request packet
  *
- *  @param None.
+ *  @param specialPacket - Identifies if the program is currently in a startUp state
  *  @return bool - TRUE if the packet was placed in the FIFO successfully
  */
 static bool HandleVersionPacket(bool specialPacket)
 {
   //Ensures incoming packet is valid
   if (specialPacket == TRUE || (Packet_Parameter1 == 0x76 && Packet_Parameter2 == 0x78 && Packet_Parameter3 == 0x0D))
-    return Packet_Put(0x09, 0x76, MajorTowerVersion, MinorTowerVersion);
+    return Packet_Put(PACKET_VERSION, 0x76, MajorTowerVersion, MinorTowerVersion);
 
   return FALSE;
 }
 
 /*! @brief Handles the "Tower number" request packet
  *
- *  @param No param required.
+ *  @param specialPacket - Identifies if the program is currently in a startUp state
  *  @return bool - TRUE if the packet was placed in or read from the flash successfully
  */
 static bool HandleNumberPacket(bool specialPacket)
@@ -138,14 +145,14 @@ static bool HandleNumberPacket(bool specialPacket)
       if (Packet_Parameter1 == 0x02)
 	return Flash_Write16((uint16_t*)NvTowerNb, Packet_Parameter23);
       else if (!(Packet_Parameter2 || Packet_Parameter3))
-	return Packet_Put(0x0B, 0x01, (*NvTowerNb).s.Lo, (*NvTowerNb).s.Hi);
+	return Packet_Put(PACKET_NUMBER, 0x01, (*NvTowerNb).s.Lo, (*NvTowerNb).s.Hi);
     }
   return FALSE;
 }
 
-/*! @brief Handles the "Program" request packet
+/*! @brief Handles the "Tower Mode" request packet
  *
- *  @param startUp - Identifies if the program is currently in a startUp state
+ *  @param specialPacket - Identifies if the program is currently in a startUp state
  *  @return bool - TRUE if the packet was written to or read from the flash successfully
  */
 static bool HandleModePacket(bool specialPacket)
@@ -156,12 +163,15 @@ static bool HandleModePacket(bool specialPacket)
       if (Packet_Parameter1 == 0x02)
         return Flash_Write16((uint16_t*)NvTowerMd, Packet_Parameter23);
       else if (!(Packet_Parameter2 || Packet_Parameter3))
-	return Packet_Put(0x0D, 0x01, (*NvTowerMd).s.Lo, (*NvTowerMd).s.Hi);
+	return Packet_Put(PACKET_TOWER_MODE, 0x01, (*NvTowerMd).s.Lo, (*NvTowerMd).s.Hi);
     }
 
   return FALSE;
 }
 
+/*! @brief Handles the "Set Time" request packet
+ *
+ */
 static bool HandleTimePacket(void)
 {
   if (Packet_Parameter1 < 24 && Packet_Parameter2 < 60 && Packet_Parameter3 < 60 )
@@ -171,6 +181,36 @@ static bool HandleTimePacket(void)
     }
   return FALSE;
 }
+
+/*! @brief Handles the "Protocol - Mode" request packet
+ *
+ *  @param specialPacket - Identifies if the program is currently in a startUp state
+ *  @return bool - TRUE if the parameters were correct and packet packet was sent to PC
+ */
+static bool HandleProtocolPacket(bool specialPacket)
+{
+  //checks if packet is valid
+  if (Packet_Parameter1 == 1 && Packet_Parameter2 == 0 && Packet_Parameter3 == 0)
+    {
+      //sends the current protocol mode
+      Packet_Put(PACKET_PROTOCOL_MODE, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3);
+      return TRUE;
+    }
+  //checks if packet is valid
+  if ((Packet_Parameter1 = 2 && Packet_Parameter2 >= 0 && Packet_Parameter2 <= 1 && Packet_Parameter3 == 0) || specialPacket == TRUE)
+    {
+      if(specialPacket == FALSE && Packet_Parameter2 == 0)
+	synchronous = FALSE;
+      else if (specialPacket == FALSE)
+	synchronous = TRUE;
+
+      Packet_Put(PACKET_PROTOCOL_MODE, 0x01, (uint8_t)synchronous, 0x00);
+      return TRUE;
+    }
+
+  return FALSE;
+}
+
 
 /*! @brief Handles the "Special" request packet
  *
@@ -182,21 +222,25 @@ static bool HandleSpecialPacket(bool startUp)
   bool specialPacket = TRUE;
   if (startUp == TRUE)
     {
-      return Packet_Put(0x04, 0x00, 0x00, 0x00) &&
+      return Packet_Put(PACKET_SPECIAL, 0x00, 0x00, 0x00) &&
 	     HandleVersionPacket(specialPacket) &&
 	     HandleNumberPacket(specialPacket) &&
-	     HandleModePacket(specialPacket);
+	     HandleModePacket(specialPacket) &&
+	     HandleProtocolPacket(specialPacket);
     }
   //calls to send all three packets to PC
   else if (!(Packet_Parameter1 || Packet_Parameter2 || Packet_Parameter3))
    {
-      return Packet_Put(0x04, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3) &&
+      return Packet_Put(PACKET_SPECIAL, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3) &&
 	     HandleVersionPacket(specialPacket) &&
 	     HandleNumberPacket(specialPacket) &&
-	     HandleModePacket(specialPacket);
+	     HandleModePacket(specialPacket)&&
+	     HandleProtocolPacket(specialPacket);
    }
  return FALSE;
 }
+
+
 
 /*! @brief Handles the packets that comes from the PC and determines what to do
  *
@@ -239,8 +283,9 @@ static void HandlePacket(void)
 	success = HandleTimePacket();
     break;
 
-
-   break;
+    case (PACKET_PROTOCOL_MODE):
+	success = HandleProtocolPacket(FALSE);
+    break;
   }
    if (Packet_Command & PACKET_ACK_MASK) //sends acknowledgment (if PC requested it) packet to PC
      {
@@ -281,7 +326,26 @@ static void TowerNumberModeInit(void)
  */
 static void PITCallback(void* arg)
 {
-  LEDs_Toggle(LED_GREEN);
+  //counter used to determine if 500ms has passed
+  static uint8_t ledToggleCount = 0;
+  ledToggleCount++;
+  if (ledToggleCount == 50)
+    {
+      LEDs_Toggle(LED_GREEN);
+      ledToggleCount = 0;
+    }
+
+  //will behave differently if tower is in synchronous or asynchronous
+  Analog_Get(ADCChannel);
+  if(synchronous)
+    {
+      Packet_Put(PACKET_ANALOG_INPUT_VALUE, 0x00, Analog_Input[ADCChannel].value.s.Lo, Analog_Input[ADCChannel].value.s.Hi);
+    }
+  else
+    {
+      if (Analog_Input[ADCChannel].value.l != Analog_Input[ADCChannel].oldValue.l)
+	Packet_Put(PACKET_ANALOG_INPUT_VALUE, 0x00, Analog_Input[ADCChannel].value.s.Lo, Analog_Input[ADCChannel].value.s.Hi);
+    }
 
 }
 
@@ -343,18 +407,15 @@ int main(void)
   LEDs_Init();
 
 
-  if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init())
+  if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init() && Analog_Init(CPU_BUS_CLK_HZ)
+      &&  RTC_Init(RTCCallback, NULL) && PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL) && FTM_Init())
     LEDs_On(LED_ORANGE);
 
-  RTC_Init(RTCCallback, NULL);
-  PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL);
-  FTM_Init();
+  //setup the PIT and call for Channel 0 to be set up
+  PIT_Set(10000000, TRUE);
+  CH01SecondTimerInit();
 
   __EI(); //enable interrupts
-
-  //setup the PIT and call for Channel 0 to be set up
-  PIT_Set(500000000, TRUE);
-  CH01SecondTimerInit();
 
   //handles the initialization tower number and mode in the flash
   TowerNumberModeInit();
