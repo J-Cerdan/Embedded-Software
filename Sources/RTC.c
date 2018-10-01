@@ -75,13 +75,7 @@ bool RTC_Init(void (*userFunction)(void*), void* userArguments)
   return TRUE;
 }
 
-/*! @brief Sets the value of the real time clock.
- *
- *  @param hours The desired value of the real time clock hours (0-23).
- *  @param minutes The desired value of the real time clock minutes (0-59).
- *  @param seconds The desired value of the real time clock seconds (0-59).
- *  @note Assumes that the RTC module has been initialized and all input parameters are in range.
- */
+
 void RTC_Set(const uint8_t hours, const uint8_t minutes, const uint8_t seconds)
 {
   if (hours < 24 && minutes < 60 && seconds < 60 )//checks time is valid
