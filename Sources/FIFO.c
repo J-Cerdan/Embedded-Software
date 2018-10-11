@@ -16,6 +16,7 @@
 #include "FIFO.h"
 //provides useful definitions
 #include "PE_Types.h"
+#include "OS.h"
 
 
 bool FIFO_Init(TFIFO * const fifo)
@@ -35,15 +36,14 @@ bool FIFO_Init(TFIFO * const fifo)
 
 bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 {
-  //Critical mode to stop foreground or background operations
-  EnterCritical();
   //Checks if FIFO has reached maximum capacity
   if (fifo->NbBytes == FIFO_SIZE)
     {
-      ExitCritical();
       return FALSE;
     }
 
+  //Critical mode to stop foreground or background operations
+  OS_DisableInterrupts();
   //Assigns received data into correct FIFO location
   fifo->Buffer[fifo->End] = data;
 
@@ -57,23 +57,21 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
   //Maintains Number of Bytes within FIFO
   fifo->NbBytes++;
 
-  ExitCritical();
+  OS_EnableInterrupts();
   return TRUE;
 }
 
 
 bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
 {
-  //Critical mode to stop foreground or background operations
-  EnterCritical();
   //Checks if any data is stored in the FIFO
   if (fifo->NbBytes == 0)
     {
-      ExitCritical();
       return FALSE;
     }
 
-
+  //Critical mode to stop foreground or background operations
+  OS_DisableInterrupts();
   //Identifies oldest data within FIFO and assigns to data pointer for transmission
   *dataPtr = fifo->Buffer[fifo->Start];
 
@@ -87,7 +85,7 @@ bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
   if (fifo->Start > FIFO_SIZE-1)
     fifo->Start = 0;
 
-  ExitCritical();
+  OS_EnableInterrupts();
   return TRUE;
 
 }

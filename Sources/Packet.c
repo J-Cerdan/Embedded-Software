@@ -17,11 +17,13 @@
 #include "packet.h"
 //provides useful public functions
 #include "UART.h"
+#include "OS.h"
 
 
 const uint8_t PACKET_ACK_MASK = 0x80; // 1000 0000
 
 TPacket Packet;
+
 
 /*! @brief Calculates the checksum of the packet through XORing the parameters passed in.
  *
@@ -117,7 +119,7 @@ bool Packet_Get(void)
 bool Packet_Put(const uint8_t command, const uint8_t parameter1, const uint8_t parameter2, const uint8_t parameter3)
 {
   //Critical mode to stop foreground or background operations
-  EnterCritical();
+  //OS_DisableInterrupts();
   bool success = FALSE;
   //Obtains packets and assigns to parameters of FIFO buffer, returns 0 if any execution fails
   success = (UART_OutChar(command) &&
@@ -126,7 +128,7 @@ bool Packet_Put(const uint8_t command, const uint8_t parameter1, const uint8_t p
      UART_OutChar(parameter3) &&
      UART_OutChar(CalculateChecksum(command, parameter1, parameter2, parameter3))); //Calculates and stores checksum
 
-  ExitCritical();
+  //OS_EnableInterrupts();
   return success;
 }
 
@@ -134,6 +136,18 @@ static uint8_t CalculateChecksum(uint8_t command, uint8_t parameter1, uint8_t pa
 {
   return (command ^ parameter1 ^ parameter2 ^ parameter3);
 }
+
+
+/*
+for (;;)
+  {
+
+      if (Packet_Get()) //checks if any complete packets have been received and calls the HandlePacket function
+	{
+	  HandlePacket();
+	}
+  }*/
+
 /*!
 ** @}
 */

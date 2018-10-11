@@ -48,6 +48,7 @@
 #include "PIT.h"
 #include "FTM.h"
 #include "analog.h"
+#include "OS.h"
 
 
 //macros defined for determining which command protocol has been sent
@@ -75,8 +76,10 @@ static TFTMChannel Ch0;
 static bool synchronous = FALSE;
 //LTC1859 channel to be used
 static const uint8_t ADCChannel = 0;
-
-
+//RTC Time
+static uint8_t hours = 0, minutes = 0, seconds = 0;
+//PacketThread stack
+uint32_t PacketStack[200];
 
 
 /*! @brief Handles the "Program" request packet
@@ -349,6 +352,7 @@ static void PITCallback(void* arg)
 
 }
 
+
 /*! @brief Call back functions for the RTC ISR
  *
  *  @param void
@@ -356,7 +360,6 @@ static void PITCallback(void* arg)
  */
 static void RTCCallback (void* arg)
 {
-  uint8_t hours = 0, minutes = 0, seconds = 0;\
   RTC_Get(&hours, &minutes, &seconds);
   Packet_Put(0x0C, hours, minutes, seconds);
   LEDs_Toggle(LED_YELLOW);
@@ -390,6 +393,18 @@ static void CH01SecondTimerInit(void)
   FTM_Set(&Ch0);
 }
 
+static void PacketThread(void* arg)
+{
+  for (;;)
+    {
+      (void)OS_SemaphoreWait(IncomingPacket, 0);
+      if (Packet_Get()) //checks if any complete packets have been received and calls the HandlePacket function
+      	{
+      	  HandlePacket();
+      	}
+    }
+}
+
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
 /*! @brief main
  *
@@ -399,23 +414,27 @@ int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
 
-  __DI(); //make sure interrupts are disabled
+  //__DI(); //make sure interrupts are disabled
   // stores the tower number as a union to be able to access hi and lo bytes
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
   /*** End of Processor Expert internal initialization.                    ***/
   LEDs_Init();
 
+  OS_Init(CPU_CORE_CLK_HZ, false);
 
   if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init() && Analog_Init(CPU_BUS_CLK_HZ)
-      &&  RTC_Init(RTCCallback, NULL) && PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL) && FTM_Init())
+      &&  RTC_Init(RTCCallback, NULL) && PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL) &&
+      FTM_Init())
     LEDs_On(LED_ORANGE);
 
   //setup the PIT and call for Channel 0 to be set up
   PIT_Set(10000000, TRUE);
   CH01SecondTimerInit();
 
-  __EI(); //enable interrupts
+  (void)OS_ThreadCreate(PacketThread, NULL, &PacketStack[199], 6);
+
+  //__EI(); //enable interrupts
 
   //handles the initialization tower number and mode in the flash
   TowerNumberModeInit();
@@ -423,15 +442,8 @@ int main(void)
   //sends the initial packets when the tower starts up
   HandleSpecialPacket(TRUE);
 
+  OS_Start();
 
-  for (;;)
-  {
-
-      if (Packet_Get()) //checks if any complete packets have been received and calls the HandlePacket function
-	{
-	  HandlePacket();
-	}
-  }
 
   /*** Don't write any code pass this line, or it will be deleted during code generation. ***/
   /*** RTOS startup code. Macro PEX_RTOS_START is defined by the RTOS component. DON'T MODIFY THIS CODE!!! ***/
