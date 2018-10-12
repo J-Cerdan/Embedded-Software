@@ -16,9 +16,7 @@
 
 // new types
 #include "types.h"
-#include "OS.h"
 
-extern OS_ECB* IncomingPacket;
 /*! @brief Sets up the UART interface before first use.
  *
  *  @param baudRate The desired baud rate in bits/sec.
