@@ -21,6 +21,8 @@
 #include "PE_Types.h"
 //This header file implements peripheral memory map for MK70F1 processor.
 #include "MK70F12.h"
+#include "OS.h"
+#include "ThreadManage.h"
 
 //Private global variable to contain module clock
 static uint32_t ModuleClk;
@@ -28,6 +30,14 @@ static uint32_t ModuleClk;
 //pointer and arguments to user call back function
 static void (*CallBack)(void*);
 static void* CallBackArgument;
+
+//stack for thread
+OS_THREAD_STACK(PITStack, THREAD_STACK_SIZE);
+//semaphore for PITThread()
+static OS_ECB* CntDone;
+
+
+static void PITThread(void* arg);
 
 
 bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userArguments)
@@ -54,6 +64,12 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
   CallBack = userFunction;
   CallBackArgument = userArguments;
 
+  //create the thread
+  OS_ThreadCreate(PITThread, NULL, &PITStack[THREAD_STACK_SIZE - 1], PIT_THREAD);
+
+  //create semaphore
+  CntDone = OS_SemaphoreCreate(0);
+
   return TRUE;
 
 }
@@ -62,7 +78,7 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
 void PIT_Set(const uint32_t period, const bool restart)
 {
   //Critical mode to stop foreground or background operations that could affect the set process
-  EnterCritical();
+  OS_DisableInterrupts();
 
   uint32_t clockPeriod;
 
@@ -79,7 +95,7 @@ void PIT_Set(const uint32_t period, const bool restart)
       PIT_TCTRL0 |= PIT_TCTRL_TEN_MASK;
     }
 
-  ExitCritical();
+  OS_EnableInterrupts();
 
 }
 
@@ -99,12 +115,24 @@ void PIT_Enable(const bool enable)
 
 void __attribute__ ((interrupt)) PIT_ISR(void)
 {
+  OS_ISREnter();
   //Write 1 to clear interrupt flag
   PIT_TFLG0 |= PIT_TFLG_TIF_MASK;
+  //signal the semaphore
+  (void)OS_SemaphoreSignal(CntDone);
 
-  if (CallBack)
-  (*CallBack) (CallBackArgument);
+  OS_ISRExit();
 
+}
+
+static void PITThread(void* arg)
+{
+  for (;;)
+    {
+      (void)OS_SemaphoreWait(CntDone, 0);
+      if (CallBack)
+	(*CallBack) (CallBackArgument); //calls the user call back function
+    }
 }
 
 /*!

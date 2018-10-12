@@ -16,6 +16,8 @@
 #include "RTC.h"
 #include "MK70F12.h"
 #include "PE_Types.h"
+#include "OS.h"
+#include "ThreadManage.h"
 
 
 
@@ -23,12 +25,19 @@
 static void (*CallBack)(void*);
 static void* CallBackArgument;
 
+//thread stack
+OS_THREAD_STACK(RTCStack, THREAD_STACK_SIZE);
+//semaphore used in thread
+static OS_ECB* SecondPassed;
+
+static void RTCThread(void* arg);
+
 
 
 bool RTC_Init(void (*userFunction)(void*), void* userArguments)
 {
   //Critical mode to stop foreground or background operations
-  EnterCritical();
+  OS_DisableInterrupts();
   //enables the RTC module
   SIM_SCGC6 |= SIM_SCGC6_RTC_MASK;
 
@@ -70,7 +79,14 @@ bool RTC_Init(void (*userFunction)(void*), void* userArguments)
   //set user callback functions
   CallBack = userFunction;
   CallBackArgument = userArguments;
-  ExitCritical();
+
+  //create the thread
+  OS_ThreadCreate(RTCThread, NULL, &RTCStack[THREAD_STACK_SIZE - 1], RTC_THREAD);
+
+  //create semaphore
+  SecondPassed = OS_SemaphoreCreate(0);
+
+  OS_EnableInterrupts();
 
   return TRUE;
 }
@@ -115,9 +131,22 @@ void RTC_Get(uint8_t* const hours, uint8_t* const minutes, uint8_t* const second
 
 void __attribute__ ((interrupt)) RTC_ISR(void)
 {
+  OS_ISREnter();
 
-  if (CallBack)
-    (*CallBack)(CallBackArgument);
+  (void)OS_SemaphoreSignal(SecondPassed);
+  OS_ISRExit();
+
+}
+
+static void RTCThread(void* arg)
+{
+  for(;;)
+    {
+      (void)OS_SemaphoreWait(SecondPassed, 0);
+
+      if (CallBack)
+          (*CallBack)(CallBackArgument); //calls the user call back function
+    }
 }
 
 /*!

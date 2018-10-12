@@ -48,6 +48,8 @@
 #include "PIT.h"
 #include "FTM.h"
 #include "analog.h"
+#include "OS.h"
+#include "ThreadManage.h"
 
 
 //macros defined for determining which command protocol has been sent
@@ -60,6 +62,7 @@
 #define PACKET_SET_TIME 0x0C
 #define PACKET_PROTOCOL_MODE 0x0A
 #define PACKET_ANALOG_INPUT_VALUE 0x50
+
 
 //global private constant to store the baudRate
 static const uint32_t BaudRate = 115200;
@@ -75,7 +78,11 @@ static TFTMChannel Ch0;
 static bool synchronous = FALSE;
 //LTC1859 channel to be used
 static const uint8_t ADCChannel = 0;
-
+//RTC Time
+static uint8_t hours = 0, minutes = 0, seconds = 0;
+//PacketThread and InitThread stack
+OS_THREAD_STACK(PacketStack, THREAD_STACK_SIZE);
+OS_THREAD_STACK(InitStack, THREAD_STACK_SIZE);
 
 
 
@@ -297,6 +304,8 @@ static void HandlePacket(void)
 
 }
 
+
+
 /*! @brief Allocates space in the flash for Tower Number and Mode then writes data to the flash if required
  *
  *  @param void
@@ -349,6 +358,7 @@ static void PITCallback(void* arg)
 
 }
 
+
 /*! @brief Call back functions for the RTC ISR
  *
  *  @param void
@@ -356,7 +366,6 @@ static void PITCallback(void* arg)
  */
 static void RTCCallback (void* arg)
 {
-  uint8_t hours = 0, minutes = 0, seconds = 0;\
   RTC_Get(&hours, &minutes, &seconds);
   Packet_Put(0x0C, hours, minutes, seconds);
   LEDs_Toggle(LED_YELLOW);
@@ -390,6 +399,47 @@ static void CH01SecondTimerInit(void)
   FTM_Set(&Ch0);
 }
 
+static void PacketThread(void* arg)
+{
+  for (;;)
+    {
+      if (Packet_Get()) //checks if any complete packets have been received and calls the HandlePacket function
+      	{
+      	  HandlePacket();
+      	}
+    }
+}
+
+static void InitThread(void* pData)
+{
+  for (;;)
+    {
+      OS_DisableInterrupts(); //make sure interrupts are disabled
+
+          LEDs_Init();
+
+          if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init() && Analog_Init(CPU_BUS_CLK_HZ)
+              &&  RTC_Init(RTCCallback, NULL) && PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL) &&
+              FTM_Init())
+            LEDs_On(LED_ORANGE);
+
+          //setup the PIT and call for Channel 0 to be set up
+          PIT_Set(10000000, TRUE);
+          CH01SecondTimerInit();
+
+          //handles the initialization tower number and mode in the flash
+          TowerNumberModeInit();
+          OS_EnableInterrupts(); //enable interrupts
+
+          //sends the initial packets when the tower starts up
+          HandleSpecialPacket(TRUE);
+
+          OS_ThreadDelete(OS_PRIORITY_SELF);
+    }
+
+}
+
+
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
 /*! @brief main
  *
@@ -399,39 +449,21 @@ int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
 
-  __DI(); //make sure interrupts are disabled
+
   // stores the tower number as a union to be able to access hi and lo bytes
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
   /*** End of Processor Expert internal initialization.                    ***/
-  LEDs_Init();
+
+  OS_Init(CPU_CORE_CLK_HZ, false);
+
+  OS_ThreadCreate(InitThread, NULL, &InitStack[THREAD_STACK_SIZE - 1], INIT_THREAD);
+
+  OS_ThreadCreate(PacketThread, NULL, &PacketStack[THREAD_STACK_SIZE - 1], PACKET_THREAD);
 
 
-  if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init() && Analog_Init(CPU_BUS_CLK_HZ)
-      &&  RTC_Init(RTCCallback, NULL) && PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL) && FTM_Init())
-    LEDs_On(LED_ORANGE);
+  OS_Start();
 
-  //setup the PIT and call for Channel 0 to be set up
-  PIT_Set(10000000, TRUE);
-  CH01SecondTimerInit();
-
-  __EI(); //enable interrupts
-
-  //handles the initialization tower number and mode in the flash
-  TowerNumberModeInit();
-
-  //sends the initial packets when the tower starts up
-  HandleSpecialPacket(TRUE);
-
-
-  for (;;)
-  {
-
-      if (Packet_Get()) //checks if any complete packets have been received and calls the HandlePacket function
-	{
-	  HandlePacket();
-	}
-  }
 
   /*** Don't write any code pass this line, or it will be deleted during code generation. ***/
   /*** RTOS startup code. Macro PEX_RTOS_START is defined by the RTOS component. DON'T MODIFY THIS CODE!!! ***/

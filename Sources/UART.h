@@ -16,6 +16,7 @@
 
 // new types
 #include "types.h"
+
 /*! @brief Sets up the UART interface before first use.
  *
  *  @param baudRate The desired baud rate in bits/sec.

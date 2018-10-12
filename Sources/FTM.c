@@ -18,6 +18,8 @@
 #include "FTM.h"
 #include "MK70F12.h"
 #include "PE_Types.h"
+#include "OS.h"
+#include "ThreadManage.h"
 
 #define CHANNELS 8
 
@@ -25,7 +27,14 @@
 static void (*CallBackFunctions[CHANNELS]) (void*);
 static void* CallBackArgument[CHANNELS];
 
+//
+static uint8_t ChannelInterrupt;
+//stack for thread
+OS_THREAD_STACK(FTMStack, THREAD_STACK_SIZE);
+//semaphore
+static OS_ECB* CntDone;
 
+static void FTMThread(void* arg);
 
 bool FTM_Init()
 {
@@ -43,6 +52,12 @@ bool FTM_Init()
   NVICISER1 |= NVIC_ISER_SETENA(1 << (62 % 32));
   NVICICPR1 |= NVIC_ICPR_CLRPEND(1 << (62 % 32));
 
+  //create the thread
+  OS_ThreadCreate(FTMThread, NULL, &FTMStack[THREAD_STACK_SIZE - 1], FTM_THREAD);
+
+  //create semaphore
+  CntDone = OS_SemaphoreCreate(0);
+
   return TRUE;
 
 }
@@ -50,7 +65,7 @@ bool FTM_Init()
 
 bool FTM_Set(const TFTMChannel* const aFTMChannel)
 {
-  EnterCritical(); //critical section as global variables are being adjusted
+  OS_DisableInterrupts(); //critical section as global variables are being adjusted
   if (aFTMChannel != NULL) //make sure pointer is not NULL
     {
       if (aFTMChannel->timerFunction == TIMER_FUNCTION_INPUT_CAPTURE)//sets up channel for input capture
@@ -59,7 +74,7 @@ bool FTM_Set(const TFTMChannel* const aFTMChannel)
 	  FTM0_CnSC(aFTMChannel->channelNb) &= (FTM_CnSC_MSA_MASK | FTM_CnSC_MSB_MASK);
 	  CallBackFunctions[aFTMChannel->channelNb] = aFTMChannel->callbackFunction;
 	  CallBackArgument[aFTMChannel->channelNb] = aFTMChannel->callbackArguments;
-	  ExitCritical();
+	  OS_EnableInterrupts();
 	  return TRUE;
 	}
       else //sets up channel for output compare
@@ -69,11 +84,11 @@ bool FTM_Set(const TFTMChannel* const aFTMChannel)
 	  FTM0_CnSC(aFTMChannel->channelNb) |= FTM_CnSC_MSA_MASK;
 	  CallBackFunctions[aFTMChannel->channelNb] = aFTMChannel->callbackFunction;
 	  CallBackArgument[aFTMChannel->channelNb] = aFTMChannel->callbackArguments;
-	  ExitCritical();
+	  OS_EnableInterrupts();
 	  return TRUE;
 	}
     }
-  ExitCritical();
+  OS_EnableInterrupts();
   return FALSE;
 }
 
@@ -99,14 +114,34 @@ bool FTM_StartTimer(const TFTMChannel* const aFTMChannel)
 
 void __attribute__ ((interrupt)) FTM0_ISR(void)
 {
-  //loops through the channels to see which generated the interrupt and call is callback funciton
-  for (uint8_t i = 0; i < 8; i++)
+  OS_ISREnter();
+  //loops through the channels to see which generated the interrupt and call is callback function
+  for (uint8_t i = 0; i < CHANNELS; i++)
     {
       if (FTM0_CnSC(i) & (FTM_CnSC_CHF_MASK | FTM_CnSC_CHIE_MASK))
 	{
 	  FTM0_CnSC(i) &= ~(FTM_CnSC_CHF_MASK | FTM_CnSC_CHIE_MASK);
-	  if (CallBackFunctions[i])
-	      (*(CallBackFunctions[i]))(CallBackArgument[i]);
+	  ChannelInterrupt |= (1 << i); //indicates which channel needs to be serviced
+	  (void)OS_SemaphoreSignal(CntDone);
+	}
+    }
+  OS_ISRExit();
+}
+
+static void FTMThread(void* arg)
+{
+  for (;;)
+    {
+      (void)OS_SemaphoreWait(CntDone, 0);
+      for(uint8_t i = 0; i < CHANNELS; i++) //loop checks which channel needs servicing and call its call back function
+	{
+	  if(ChannelInterrupt & (1 << i))
+	    {
+	      if (CallBackFunctions[i])
+		(*(CallBackFunctions[i]))(CallBackArgument[i]);
+	      ChannelInterrupt &= ~(1 << i); //indicates that channel has been serviced
+	      break;
+	    }
 	}
     }
 }

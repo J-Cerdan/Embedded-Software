@@ -16,6 +16,8 @@
 #include "FIFO.h"
 //provides useful definitions
 #include "PE_Types.h"
+#include "OS.h"
+#include "ThreadManage.h"
 
 
 bool FIFO_Init(TFIFO * const fifo)
@@ -25,7 +27,8 @@ bool FIFO_Init(TFIFO * const fifo)
       //Initialisation of END and Start indices and Number of Bytes of FIFO
       fifo->End = 0;
       fifo->Start = 0;
-      fifo->NbBytes = 0;
+      fifo->NbBytes = OS_SemaphoreCreate(0);
+      fifo->BytesAvailable = OS_SemaphoreCreate(FIFO_SIZE);
       return TRUE;
     }
 
@@ -35,14 +38,7 @@ bool FIFO_Init(TFIFO * const fifo)
 
 bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 {
-  //Critical mode to stop foreground or background operations
-  EnterCritical();
-  //Checks if FIFO has reached maximum capacity
-  if (fifo->NbBytes == FIFO_SIZE)
-    {
-      ExitCritical();
-      return FALSE;
-    }
+  OS_SemaphoreWait(fifo->BytesAvailable, 0);
 
   //Assigns received data into correct FIFO location
   fifo->Buffer[fifo->End] = data;
@@ -55,30 +51,18 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
     fifo->End = 0;
 
   //Maintains Number of Bytes within FIFO
-  fifo->NbBytes++;
+  OS_SemaphoreSignal(fifo->NbBytes);
 
-  ExitCritical();
   return TRUE;
 }
 
 
 bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
 {
-  //Critical mode to stop foreground or background operations
-  EnterCritical();
-  //Checks if any data is stored in the FIFO
-  if (fifo->NbBytes == 0)
-    {
-      ExitCritical();
-      return FALSE;
-    }
-
+  OS_SemaphoreWait(fifo->NbBytes, 0);
 
   //Identifies oldest data within FIFO and assigns to data pointer for transmission
   *dataPtr = fifo->Buffer[fifo->Start];
-
-  //Maintains Number of Bytes within FIFO
-  fifo->NbBytes--;
 
   //Maintains Start index
   fifo->Start++;
@@ -87,9 +71,9 @@ bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
   if (fifo->Start > FIFO_SIZE-1)
     fifo->Start = 0;
 
-  ExitCritical();
-  return TRUE;
+  OS_SemaphoreSignal(fifo->BytesAvailable); //maintains number of available bytes in fifo
 
+  return TRUE;
 }
 
 
