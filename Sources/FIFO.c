@@ -26,7 +26,8 @@ bool FIFO_Init(TFIFO * const fifo)
       //Initialisation of END and Start indices and Number of Bytes of FIFO
       fifo->End = 0;
       fifo->Start = 0;
-      fifo->NbBytes = 0;
+      fifo->NbBytes = OS_SemaphoreCreate(0);
+      fifo->BytesAvailable = OS_SemaphoreCreate(FIFO_SIZE);
       return TRUE;
     }
 
@@ -36,11 +37,12 @@ bool FIFO_Init(TFIFO * const fifo)
 
 bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 {
+  //OS_SemaphoreWait(fifo->BytesAvailable, 0);
   //Checks if FIFO has reached maximum capacity
-  if (fifo->NbBytes == FIFO_SIZE)
+  /*if (fifo->NbBytes == FIFO_SIZE)
     {
       return FALSE;
-    }
+    }*/
 
   //Critical mode to stop foreground or background operations
   OS_DisableInterrupts();
@@ -53,22 +55,23 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
   //Checks and resets End index to restrict to certain values
   if (fifo->End > FIFO_SIZE-1)
     fifo->End = 0;
-
-  //Maintains Number of Bytes within FIFO
-  fifo->NbBytes++;
-
   OS_EnableInterrupts();
+  //Maintains Number of Bytes within FIFO
+  OS_SemaphoreSignal(fifo->NbBytes);
+
+
   return TRUE;
 }
 
 
 bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
 {
+  //OS_SemaphoreWait(fifo->NbBytes, 0);
   //Checks if any data is stored in the FIFO
-  if (fifo->NbBytes == 0)
+  /*if (fifo->NbBytes == 0)
     {
       return FALSE;
-    }
+    }*/
 
   //Critical mode to stop foreground or background operations
   OS_DisableInterrupts();
@@ -76,8 +79,7 @@ bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
   *dataPtr = fifo->Buffer[fifo->Start];
 
   //Maintains Number of Bytes within FIFO
-  fifo->NbBytes--;
-
+  //fifo->NbBytes--;
   //Maintains Start index
   fifo->Start++;
 
@@ -86,6 +88,8 @@ bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
     fifo->Start = 0;
 
   OS_EnableInterrupts();
+  OS_SemaphoreSignal(fifo->BytesAvailable);
+
   return TRUE;
 
 }

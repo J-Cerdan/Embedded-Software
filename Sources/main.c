@@ -79,7 +79,7 @@ static const uint8_t ADCChannel = 0;
 //RTC Time
 static uint8_t hours = 0, minutes = 0, seconds = 0;
 //PacketThread stack
-uint32_t PacketStack[200];
+uint32_t PacketStack[800];
 
 
 /*! @brief Handles the "Program" request packet
@@ -300,6 +300,8 @@ static void HandlePacket(void)
 
 }
 
+
+
 /*! @brief Allocates space in the flash for Tower Number and Mode then writes data to the flash if required
  *
  *  @param void
@@ -346,8 +348,8 @@ static void PITCallback(void* arg)
     }
   else
     {
-      if (Analog_Input[ADCChannel].value.l != Analog_Input[ADCChannel].oldValue.l)
-	Packet_Put(PACKET_ANALOG_INPUT_VALUE, 0x00, Analog_Input[ADCChannel].value.s.Lo, Analog_Input[ADCChannel].value.s.Hi);
+      //if (Analog_Input[ADCChannel].value.l != Analog_Input[ADCChannel].oldValue.l)
+	//Packet_Put(PACKET_ANALOG_INPUT_VALUE, 0x00, Analog_Input[ADCChannel].value.s.Lo, Analog_Input[ADCChannel].value.s.Hi);
     }
 
 }
@@ -397,7 +399,6 @@ static void PacketThread(void* arg)
 {
   for (;;)
     {
-      (void)OS_SemaphoreWait(IncomingPacket, 0);
       if (Packet_Get()) //checks if any complete packets have been received and calls the HandlePacket function
       	{
       	  HandlePacket();
@@ -414,7 +415,7 @@ int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
 {
 
-  //__DI(); //make sure interrupts are disabled
+
   // stores the tower number as a union to be able to access hi and lo bytes
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
@@ -422,7 +423,7 @@ int main(void)
   LEDs_Init();
 
   OS_Init(CPU_CORE_CLK_HZ, false);
-
+  OS_DisableInterrupts(); //make sure interrupts are disabled
   if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init() && Analog_Init(CPU_BUS_CLK_HZ)
       &&  RTC_Init(RTCCallback, NULL) && PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL) &&
       FTM_Init())
@@ -432,16 +433,16 @@ int main(void)
   PIT_Set(10000000, TRUE);
   CH01SecondTimerInit();
 
-  (void)OS_ThreadCreate(PacketThread, NULL, &PacketStack[199], 6);
+  (void)OS_ThreadCreate(PacketThread, NULL, &PacketStack[799], 7);
 
-  //__EI(); //enable interrupts
+
 
   //handles the initialization tower number and mode in the flash
   TowerNumberModeInit();
 
   //sends the initial packets when the tower starts up
   HandleSpecialPacket(TRUE);
-
+  OS_EnableInterrupts(); //enable interrupts
   OS_Start();
 
 

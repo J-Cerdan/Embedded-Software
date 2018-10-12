@@ -31,11 +31,9 @@ static uint32_t UARTRxStack[800];
 static uint32_t UARTTxStack[800];
 //semaphore used to handle transmitting and receiving data
 static OS_ECB* RxTrue;
-static OS_ECB* RxMemoryAvailble;
 static OS_ECB* TxTrue;
-static OS_ECB* TxNbBytes;
 //semaphore to handle packets
-OS_ECB* IncomingPacket;
+//OS_ECB* IncomingPacket;
 
 static void UARTTxThread(void* arg);
 static void UARTRxThread(void* arg);
@@ -88,15 +86,13 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
   NVICICPR1 |= NVIC_ICPR_CLRPEND(1 << (49 % 32));
 
   //create the thread
-  OS_ThreadCreate(UARTRxThread, NULL, &UARTRxStack[199], 2);
-  OS_ThreadCreate(UARTTxThread, NULL, &UARTTxStack[199], 1);
+  OS_ThreadCreate(UARTRxThread, NULL, &UARTRxStack[799], 2);
+  OS_ThreadCreate(UARTTxThread, NULL, &UARTTxStack[799], 1);
 
   //create semaphore
   RxTrue = OS_SemaphoreCreate(0);
-  RxMemoryAvailble = OS_SemaphoreCreate(FIFO_SIZE);
   TxTrue = OS_SemaphoreCreate(0);
-  TxNbBytes = OS_SemaphoreCreate(0);
-  IncomingPacket = OS_SemaphoreCreate(0);
+  //IncomingPacket = OS_SemaphoreCreate(0);
 
 
   //initialize transmit and receive FIFO and returns 1 if the succeed, marking the success of initializing the UART
@@ -107,25 +103,14 @@ bool UART_Init(const uint32_t baudRate, const uint32_t moduleClk)
 
 bool UART_InChar(uint8_t* const dataPtr)
 {
-  if(FIFO_Get(&RxFIFO, dataPtr))
-    {
-      OS_SemaphoreSignal(RxMemoryAvailble);
-      return TRUE;
-    }
-  return FALSE;
+  (void)OS_SemaphoreWait(RxFIFO.NbBytes, 0);
+  return FIFO_Get(&RxFIFO, dataPtr);
 }
 
 
 bool UART_OutChar(const uint8_t data)
 {
-  if (FIFO_Put(&TxFIFO, data))
-    {
-      OS_SemaphoreSignal(TxNbBytes);
-      return TRUE;
-    }
-
-
-  return FALSE;
+  return FIFO_Put(&TxFIFO, data);
 }
 
 
@@ -148,7 +133,9 @@ void __attribute__ ((interrupt)) UART_ISR(void)
   if (tempRead & UART_S1_RDRF_MASK)//true if receive register full flag is set
     {
       (void)OS_SemaphoreSignal(RxTrue);
-      RxData = UART2_D;
+      UART2_C2 &= ~UART_C2_RIE_MASK;
+      //RxData = UART2_D;
+
     }
 
 
@@ -164,11 +151,12 @@ static void UARTRxThread(void* arg)
 {
   for (;;)
     {
-      (void)OS_SemaphoreWait(RxTrue, 0);
-      (void)OS_SemaphoreWait(RxMemoryAvailble, 0);
+      (void)OS_SemaphoreWait(RxFIFO.BytesAvailable, 0);
 
-      FIFO_Put(&RxFIFO, RxData);
-      (void)OS_SemaphoreSignal(IncomingPacket);
+      FIFO_Put(&RxFIFO, UART2_D);
+      //(void)OS_SemaphoreSignal(IncomingPacket);
+      UART2_C2 |= UART_C2_TIE_MASK;
+      (void)OS_SemaphoreWait(RxTrue, 0);
     }
 }
 
@@ -176,12 +164,11 @@ static void UARTTxThread(void* arg)
 {
   for (;;)
     {
-      (void)OS_SemaphoreWait(TxNbBytes, 0);
-      if (UART2_S1 & UART_S1_TDRE_MASK)//true if transmit register empty flag is set
-	{
-	  FIFO_Get(&TxFIFO, (uint8_t *) &UART2_D);
-	}
-      UART2_C2 |= UART_C2_TIE_MASK; //enable transmit interrupt if there is something is the TxFIFO
+      (void)OS_SemaphoreWait(TxFIFO.NbBytes, 0);
+
+      FIFO_Get(&TxFIFO, (uint8_t *) &UART2_D);
+
+      UART2_C2 |= UART_C2_TIE_MASK;
       (void)OS_SemaphoreWait(TxTrue, 0);
     }
 }
