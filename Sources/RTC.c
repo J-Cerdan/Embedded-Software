@@ -17,6 +17,7 @@
 #include "MK70F12.h"
 #include "PE_Types.h"
 #include "OS.h"
+#include "ThreadManage.h"
 
 
 
@@ -25,7 +26,7 @@ static void (*CallBack)(void*);
 static void* CallBackArgument;
 
 //thread stack
-uint32_t RTCStack[200];
+OS_THREAD_STACK(RTCStack, THREAD_STACK_SIZE);
 //semaphore used in thread
 static OS_ECB* SecondPassed;
 
@@ -80,7 +81,7 @@ bool RTC_Init(void (*userFunction)(void*), void* userArguments)
   CallBackArgument = userArguments;
 
   //create the thread
-  OS_ThreadCreate(RTCThread, NULL, &RTCStack[199], 4);
+  OS_ThreadCreate(RTCThread, NULL, &RTCStack[THREAD_STACK_SIZE - 1], RTC_THREAD);
 
   //create semaphore
   SecondPassed = OS_SemaphoreCreate(0);
@@ -144,7 +145,7 @@ static void RTCThread(void* arg)
       (void)OS_SemaphoreWait(SecondPassed, 0);
 
       if (CallBack)
-          (*CallBack)(CallBackArgument);
+          (*CallBack)(CallBackArgument); //calls the user call back function
     }
 }
 

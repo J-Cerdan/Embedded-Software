@@ -22,6 +22,7 @@
 //This header file implements peripheral memory map for MK70F1 processor.
 #include "MK70F12.h"
 #include "OS.h"
+#include "ThreadManage.h"
 
 //Private global variable to contain module clock
 static uint32_t ModuleClk;
@@ -31,7 +32,7 @@ static void (*CallBack)(void*);
 static void* CallBackArgument;
 
 //stack for thread
-static uint32_t PITStack[200];
+OS_THREAD_STACK(PITStack, THREAD_STACK_SIZE);
 //semaphore for PITThread()
 static OS_ECB* CntDone;
 
@@ -64,7 +65,7 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
   CallBackArgument = userArguments;
 
   //create the thread
-  OS_ThreadCreate(PITThread, NULL, &PITStack[199], 3);
+  OS_ThreadCreate(PITThread, NULL, &PITStack[THREAD_STACK_SIZE - 1], PIT_THREAD);
 
   //create semaphore
   CntDone = OS_SemaphoreCreate(0);
@@ -130,7 +131,7 @@ static void PITThread(void* arg)
     {
       (void)OS_SemaphoreWait(CntDone, 0);
       if (CallBack)
-	(*CallBack) (CallBackArgument);
+	(*CallBack) (CallBackArgument); //calls the user call back function
     }
 }
 

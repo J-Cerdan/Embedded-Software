@@ -17,6 +17,7 @@
 //provides useful definitions
 #include "PE_Types.h"
 #include "OS.h"
+#include "ThreadManage.h"
 
 
 bool FIFO_Init(TFIFO * const fifo)
@@ -37,15 +38,8 @@ bool FIFO_Init(TFIFO * const fifo)
 
 bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 {
-  //OS_SemaphoreWait(fifo->BytesAvailable, 0);
-  //Checks if FIFO has reached maximum capacity
-  /*if (fifo->NbBytes == FIFO_SIZE)
-    {
-      return FALSE;
-    }*/
+  OS_SemaphoreWait(fifo->BytesAvailable, 0);
 
-  //Critical mode to stop foreground or background operations
-  OS_DisableInterrupts();
   //Assigns received data into correct FIFO location
   fifo->Buffer[fifo->End] = data;
 
@@ -55,10 +49,9 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
   //Checks and resets End index to restrict to certain values
   if (fifo->End > FIFO_SIZE-1)
     fifo->End = 0;
-  OS_EnableInterrupts();
+
   //Maintains Number of Bytes within FIFO
   OS_SemaphoreSignal(fifo->NbBytes);
-
 
   return TRUE;
 }
@@ -66,20 +59,11 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 
 bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
 {
-  //OS_SemaphoreWait(fifo->NbBytes, 0);
-  //Checks if any data is stored in the FIFO
-  /*if (fifo->NbBytes == 0)
-    {
-      return FALSE;
-    }*/
+  OS_SemaphoreWait(fifo->NbBytes, 0);
 
-  //Critical mode to stop foreground or background operations
-  OS_DisableInterrupts();
   //Identifies oldest data within FIFO and assigns to data pointer for transmission
   *dataPtr = fifo->Buffer[fifo->Start];
 
-  //Maintains Number of Bytes within FIFO
-  //fifo->NbBytes--;
   //Maintains Start index
   fifo->Start++;
 
@@ -87,11 +71,9 @@ bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
   if (fifo->Start > FIFO_SIZE-1)
     fifo->Start = 0;
 
-  OS_EnableInterrupts();
-  OS_SemaphoreSignal(fifo->BytesAvailable);
+  OS_SemaphoreSignal(fifo->BytesAvailable); //maintains number of available bytes in fifo
 
   return TRUE;
-
 }
 
 

@@ -49,6 +49,7 @@
 #include "FTM.h"
 #include "analog.h"
 #include "OS.h"
+#include "ThreadManage.h"
 
 
 //macros defined for determining which command protocol has been sent
@@ -61,6 +62,7 @@
 #define PACKET_SET_TIME 0x0C
 #define PACKET_PROTOCOL_MODE 0x0A
 #define PACKET_ANALOG_INPUT_VALUE 0x50
+
 
 //global private constant to store the baudRate
 static const uint32_t BaudRate = 115200;
@@ -78,8 +80,10 @@ static bool synchronous = FALSE;
 static const uint8_t ADCChannel = 0;
 //RTC Time
 static uint8_t hours = 0, minutes = 0, seconds = 0;
-//PacketThread stack
-uint32_t PacketStack[800];
+//PacketThread and InitThread stack
+OS_THREAD_STACK(PacketStack, THREAD_STACK_SIZE);
+OS_THREAD_STACK(InitStack, THREAD_STACK_SIZE);
+
 
 
 /*! @brief Handles the "Program" request packet
@@ -348,8 +352,8 @@ static void PITCallback(void* arg)
     }
   else
     {
-      //if (Analog_Input[ADCChannel].value.l != Analog_Input[ADCChannel].oldValue.l)
-	//Packet_Put(PACKET_ANALOG_INPUT_VALUE, 0x00, Analog_Input[ADCChannel].value.s.Lo, Analog_Input[ADCChannel].value.s.Hi);
+      if (Analog_Input[ADCChannel].value.l != Analog_Input[ADCChannel].oldValue.l)
+	Packet_Put(PACKET_ANALOG_INPUT_VALUE, 0x00, Analog_Input[ADCChannel].value.s.Lo, Analog_Input[ADCChannel].value.s.Hi);
     }
 
 }
@@ -406,6 +410,36 @@ static void PacketThread(void* arg)
     }
 }
 
+static void InitThread(void* pData)
+{
+  for (;;)
+    {
+      OS_DisableInterrupts(); //make sure interrupts are disabled
+
+          LEDs_Init();
+
+          if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init() && Analog_Init(CPU_BUS_CLK_HZ)
+              &&  RTC_Init(RTCCallback, NULL) && PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL) &&
+              FTM_Init())
+            LEDs_On(LED_ORANGE);
+
+          //setup the PIT and call for Channel 0 to be set up
+          PIT_Set(10000000, TRUE);
+          CH01SecondTimerInit();
+
+          //handles the initialization tower number and mode in the flash
+          TowerNumberModeInit();
+          OS_EnableInterrupts(); //enable interrupts
+
+          //sends the initial packets when the tower starts up
+          HandleSpecialPacket(TRUE);
+
+          OS_ThreadDelete(OS_PRIORITY_SELF);
+    }
+
+}
+
+
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
 /*! @brief main
  *
@@ -420,29 +454,14 @@ int main(void)
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
   /*** End of Processor Expert internal initialization.                    ***/
-  LEDs_Init();
 
   OS_Init(CPU_CORE_CLK_HZ, false);
-  OS_DisableInterrupts(); //make sure interrupts are disabled
-  if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init() && Analog_Init(CPU_BUS_CLK_HZ)
-      &&  RTC_Init(RTCCallback, NULL) && PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL) &&
-      FTM_Init())
-    LEDs_On(LED_ORANGE);
 
-  //setup the PIT and call for Channel 0 to be set up
-  PIT_Set(10000000, TRUE);
-  CH01SecondTimerInit();
+  OS_ThreadCreate(InitThread, NULL, &InitStack[THREAD_STACK_SIZE - 1], INIT_THREAD);
 
-  (void)OS_ThreadCreate(PacketThread, NULL, &PacketStack[799], 7);
+  OS_ThreadCreate(PacketThread, NULL, &PacketStack[THREAD_STACK_SIZE - 1], PACKET_THREAD);
 
 
-
-  //handles the initialization tower number and mode in the flash
-  TowerNumberModeInit();
-
-  //sends the initial packets when the tower starts up
-  HandleSpecialPacket(TRUE);
-  OS_EnableInterrupts(); //enable interrupts
   OS_Start();
 
 

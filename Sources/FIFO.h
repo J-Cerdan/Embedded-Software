@@ -31,6 +31,7 @@ typedef struct
   OS_ECB* BytesAvailable;	/*!< The number of bytes currently available in the FIFO */
   OS_ECB* NbBytes;		/*!< The number of bytes currently stored in the FIFO */
   uint8_t Buffer[FIFO_SIZE];	/*!< The actual array of bytes to store the data */
+  OS_ECB* BufferAccess;
 } TFIFO;
 
 /*! @brief Initialize the FIFO before first use.

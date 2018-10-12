@@ -19,6 +19,7 @@
 #include "MK70F12.h"
 #include "PE_Types.h"
 #include "OS.h"
+#include "ThreadManage.h"
 
 #define CHANNELS 8
 
@@ -29,7 +30,7 @@ static void* CallBackArgument[CHANNELS];
 //
 static uint8_t ChannelInterrupt;
 //stack for thread
-static uint32_t FTMStack[200];
+OS_THREAD_STACK(FTMStack, THREAD_STACK_SIZE);
 //semaphore
 static OS_ECB* CntDone;
 
@@ -52,7 +53,7 @@ bool FTM_Init()
   NVICICPR1 |= NVIC_ICPR_CLRPEND(1 << (62 % 32));
 
   //create the thread
-  OS_ThreadCreate(FTMThread, NULL, &FTMStack[199], 5);
+  OS_ThreadCreate(FTMThread, NULL, &FTMStack[THREAD_STACK_SIZE - 1], FTM_THREAD);
 
   //create semaphore
   CntDone = OS_SemaphoreCreate(0);
@@ -114,13 +115,13 @@ bool FTM_StartTimer(const TFTMChannel* const aFTMChannel)
 void __attribute__ ((interrupt)) FTM0_ISR(void)
 {
   OS_ISREnter();
-  //loops through the channels to see which generated the interrupt and call is callback funciton
+  //loops through the channels to see which generated the interrupt and call is callback function
   for (uint8_t i = 0; i < CHANNELS; i++)
     {
       if (FTM0_CnSC(i) & (FTM_CnSC_CHF_MASK | FTM_CnSC_CHIE_MASK))
 	{
 	  FTM0_CnSC(i) &= ~(FTM_CnSC_CHF_MASK | FTM_CnSC_CHIE_MASK);
-	  ChannelInterrupt |= (1 << i);
+	  ChannelInterrupt |= (1 << i); //indicates which channel needs to be serviced
 	  (void)OS_SemaphoreSignal(CntDone);
 	}
     }
@@ -132,13 +133,13 @@ static void FTMThread(void* arg)
   for (;;)
     {
       (void)OS_SemaphoreWait(CntDone, 0);
-      for(uint8_t i = 0; i < CHANNELS; i++)
+      for(uint8_t i = 0; i < CHANNELS; i++) //loop checks which channel needs servicing and call its call back function
 	{
 	  if(ChannelInterrupt & (1 << i))
 	    {
 	      if (CallBackFunctions[i])
 		(*(CallBackFunctions[i]))(CallBackArgument[i]);
-	      ChannelInterrupt &= ~(1 << i) ;
+	      ChannelInterrupt &= ~(1 << i); //indicates that channel has been serviced
 	      break;
 	    }
 	}
