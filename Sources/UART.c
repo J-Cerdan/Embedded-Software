@@ -27,8 +27,8 @@ static TFIFO TxFIFO, RxFIFO;
 static uint8_t RxData;
 
 //stack for thread
-static uint32_t UARTRxStack[200];
-static uint32_t UARTTxStack[200];
+static uint32_t UARTRxStack[800];
+static uint32_t UARTTxStack[800];
 //semaphore used to handle transmitting and receiving data
 static OS_ECB* RxTrue;
 static OS_ECB* RxMemoryAvailble;
@@ -120,7 +120,6 @@ bool UART_OutChar(const uint8_t data)
 {
   if (FIFO_Put(&TxFIFO, data))
     {
-      UART2_C2 |= UART_C2_TIE_MASK; //enable transmit interrupt if there is something is the TxFIFO
       OS_SemaphoreSignal(TxNbBytes);
       return TRUE;
     }
@@ -177,12 +176,13 @@ static void UARTTxThread(void* arg)
 {
   for (;;)
     {
-      (void)OS_SemaphoreWait(TxTrue, 0);
       (void)OS_SemaphoreWait(TxNbBytes, 0);
       if (UART2_S1 & UART_S1_TDRE_MASK)//true if transmit register empty flag is set
 	{
 	  FIFO_Get(&TxFIFO, (uint8_t *) &UART2_D);
 	}
+      UART2_C2 |= UART_C2_TIE_MASK; //enable transmit interrupt if there is something is the TxFIFO
+      (void)OS_SemaphoreWait(TxTrue, 0);
     }
 }
 
