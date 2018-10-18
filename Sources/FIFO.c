@@ -23,14 +23,15 @@
 bool FIFO_Init(TFIFO * const fifo)
 {
   if (fifo != NULL)
-    {
-      //Initialisation of END and Start indices and Number of Bytes of FIFO
-      fifo->End = 0;
-      fifo->Start = 0;
-      fifo->NbBytes = OS_SemaphoreCreate(0);
-      fifo->BytesAvailable = OS_SemaphoreCreate(FIFO_SIZE);
-      return TRUE;
-    }
+  {
+    //Initialisation of END and Start indices and Number of Bytes of FIFO
+    fifo->End = 0;
+    fifo->Start = 0;
+    fifo->NbBytes = OS_SemaphoreCreate(0);
+    fifo->BytesAvailable = OS_SemaphoreCreate(FIFO_SIZE);
+    fifo->Mutex = OS_SemaphoreCreate(1);
+    return TRUE;
+  }
 
   return FALSE;
 }
@@ -39,6 +40,7 @@ bool FIFO_Init(TFIFO * const fifo)
 bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 {
   OS_SemaphoreWait(fifo->BytesAvailable, 0);
+  OS_SemaphoreWait(fifo->Mutex, 0);
 
   //Assigns received data into correct FIFO location
   fifo->Buffer[fifo->End] = data;
@@ -52,6 +54,7 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 
   //Maintains Number of Bytes within FIFO
   OS_SemaphoreSignal(fifo->NbBytes);
+  OS_SemaphoreSignal(fifo->Mutex);
 
   return TRUE;
 }
@@ -60,6 +63,7 @@ bool FIFO_Put(TFIFO * const fifo, const uint8_t data)
 bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
 {
   OS_SemaphoreWait(fifo->NbBytes, 0);
+  OS_SemaphoreWait(fifo->Mutex, 0);
 
   //Identifies oldest data within FIFO and assigns to data pointer for transmission
   *dataPtr = fifo->Buffer[fifo->Start];
@@ -72,6 +76,7 @@ bool FIFO_Get(TFIFO * const fifo, uint8_t * const dataPtr)
     fifo->Start = 0;
 
   OS_SemaphoreSignal(fifo->BytesAvailable); //maintains number of available bytes in fifo
+  OS_SemaphoreSignal(fifo->Mutex);
 
   return TRUE;
 }

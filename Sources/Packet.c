@@ -47,7 +47,7 @@ bool Packet_Init(const uint32_t baudRate, const uint32_t moduleClk)
 }
 
 
-bool Packet_Get(void)
+/*bool Packet_Get(void)
 {
   //Initialisation of state variable for the switch statement, is static to maintain position of previous state
   static uint8_t state;
@@ -118,23 +118,85 @@ bool Packet_Get(void)
     break;
     }
   }
+}*/
+
+bool Packet_Get(void)
+{
+  //Initialisation of state variable for the switch statement, is static to maintain position of previous state
+  static uint8_t state;
+
+  //Loop implemented to handle and store packets from data
+  for (;;)
+  {
+    switch(state)
+    {
+      //Store into command packet and check if storage has been completed
+      case 0:
+	UART_InChar(&Packet_Command);
+	state++;
+	break;
+
+      //Store into first parameter packet and check if storage has been completed
+      case 1:
+	UART_InChar(&Packet_Parameter1);
+        state++;
+        break;
+
+      //Store into second parameter packet and check if storage has been completed
+      case 2:
+	UART_InChar(&Packet_Parameter2);
+	state++;
+	break;
+
+      //Store into third parameter packet and check if storage has been completed
+      case 3:
+	UART_InChar(&Packet_Parameter3);
+	state++;
+	break;
+
+      //Store into checksum packet and check if storage has been completed
+      case 4:
+	UART_InChar(&Packet_Checksum);
+	state++;
+	break;
+
+      //Check if Checksum is equal to the XOR of all preceding packets for synchronization
+      case 5:
+	if(CalculateChecksum(Packet_Command, Packet_Parameter1, Packet_Parameter2, Packet_Parameter3) == Packet_Checksum)
+        {
+          //Reinitalise state variable when packets are synced and ready to be processed by the tower
+          state = 0;
+          return TRUE;
+        }
+
+	//Shifts all packets one byte to read in a new checksum (for packet synchronization
+	else
+	{
+	  Packet_Parameter1 = Packet_Parameter2;
+	  Packet_Parameter2 = Packet_Parameter3;
+	  Packet_Parameter3 = Packet_Checksum;
+	  state = 4;
+	}
+	break;
+    }
+  }
 }
 
 
 bool Packet_Put(const uint8_t command, const uint8_t parameter1, const uint8_t parameter2, const uint8_t parameter3)
 {
   OS_SemaphoreWait(PacketMutex, 0); //locks and allows only one thread to access this function
-  bool success = FALSE;
   //Obtains packets and assigns to parameters of FIFO buffer, returns 0 if any execution fails
-  success = (UART_OutChar(command) &&
-     UART_OutChar(parameter1) &&
-     UART_OutChar(parameter2) &&
-     UART_OutChar(parameter3) &&
-     UART_OutChar(CalculateChecksum(command, parameter1, parameter2, parameter3))); //Calculates and stores checksum
+  UART_OutChar(command);
+  UART_OutChar(parameter1);
+  UART_OutChar(parameter2);
+  UART_OutChar(parameter3);
+  UART_OutChar(CalculateChecksum(command, parameter1, parameter2, parameter3)); //Calculates and stores checksum
 
   OS_SemaphoreSignal(PacketMutex);//unlocks to allow other threads to access this function
-  return success;
+  return TRUE;
 }
+
 
 static uint8_t CalculateChecksum(uint8_t command, uint8_t parameter1, uint8_t parameter2, uint8_t parameter3)
 {

@@ -34,6 +34,8 @@ OS_THREAD_STACK(UARTTxStack, THREAD_STACK_SIZE);
 static OS_ECB* RxTrue;
 static OS_ECB* TxTrue;
 
+static uint8_t DataReceive;
+
 static void UARTTxThread(void* arg);
 static void UARTRxThread(void* arg);
 
@@ -130,49 +132,60 @@ void __attribute__ ((interrupt)) UART_ISR(void)
   uint8_t tempRead = UART2_S1;
 
   if (tempRead & UART_S1_RDRF_MASK)//true if receive register full flag is set
-    {
-      UART2_C2 &= ~UART_C2_RIE_MASK; //Turn of interrupt to exit ISR
-      OS_SemaphoreSignal(RxTrue); //signal semaphore to enter thread
-    }
+  {
+    DataReceive = UART2_D;
+    //UART2_C2 &= ~UART_C2_RIE_MASK; //Turn of interrupt to exit ISR
+    OS_SemaphoreSignal(RxTrue); //signal semaphore to enter thread
+  }
 
 
   if ((UART2_C2 & UART_C2_TIE_MASK) && (UART2_S1 & UART_S1_TDRE_MASK))
-    {
-      UART2_C2 &= ~UART_C2_TIE_MASK; // turn off interrupt to exit ISR
-      (void)OS_SemaphoreSignal(TxTrue); //signal semaphore to enter thread
-    }
+  {
+    UART2_C2 &= ~UART_C2_TIE_MASK; // turn off interrupt to exit ISR
+    (void)OS_SemaphoreSignal(TxTrue); //signal semaphore to enter thread
+  }
 
   OS_ISRExit();
 }
 
+/*! @brief Thread to handle the receiving of characters in the UART and  storing it in the RxFIFO
+ *
+ *  @param void* arg
+ *  @return void
+ */
 static void UARTRxThread(void* arg)
 {
   for (;;)
-    {
-      (void)OS_SemaphoreWait(RxTrue, 0);
+  {
+    (void)OS_SemaphoreWait(RxTrue, 0);
 
-      uint8_t tempRead = UART2_S1; //temp read to clear the RDRF register
+    //uint8_t tempRead = UART2_S1; //temp read to clear the RDRF register
 
 
-      FIFO_Put(&RxFIFO, UART2_D);
-      UART2_C2 |= UART_C2_RIE_MASK; //enable interrupt again
+    FIFO_Put(&RxFIFO, DataReceive);
+    //UART2_C2 |= UART_C2_RIE_MASK; //enable interrupt again
 
-    }
+  }
 }
 
+/*! @brief Thread to handle the transmitting of characters in the UART for the TxFIFO
+ *
+ *  @param void* arg
+ *  @return void
+ */
 static void UARTTxThread(void* arg)
 {
   for (;;)
+  {
+    (void)OS_SemaphoreWait(TxTrue, 0);
+
+    if (UART2_S1 & UART_S1_TDRE_MASK)
     {
-      (void)OS_SemaphoreWait(TxTrue, 0);
+      FIFO_Get(&TxFIFO, (uint8_t *) &UART2_D); //loads data into D register
 
-      if (UART2_S1 & UART_S1_TDRE_MASK)
-	{
-	  FIFO_Get(&TxFIFO, (uint8_t *) &UART2_D); //loads data into D register
-
-	  UART2_C2 |= UART_C2_TIE_MASK; //enable interrupt again
-	}
+      UART2_C2 |= UART_C2_TIE_MASK; //enable interrupt again
     }
+  }
 }
 
 /*!

@@ -30,6 +30,7 @@ typedef struct
   uint16_t End; 		/*!< The index of the next available empty position in the FIFO */
   OS_ECB* BytesAvailable;	/*!< The number of bytes currently available in the FIFO */
   OS_ECB* NbBytes;		/*!< The number of bytes currently stored in the FIFO */
+  OS_ECB* Mutex;		/*!< Only allows 1 function to affect thte fifo at a time */
   uint8_t Buffer[FIFO_SIZE];	/*!< The actual array of bytes to store the data */
   OS_ECB* BufferAccess;
 } TFIFO;

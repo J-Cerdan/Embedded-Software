@@ -82,16 +82,16 @@ bool Analog_Init(const uint32_t moduleClock)
 
 bool Analog_Get(const uint8_t channelNb)
 {
-  static uint8_t position0 = 0, position1 = 0;
+  //static uint8_t position0 = 0, position1 = 0;
   //data to send to the analog chip
   uint16_t data;
 
   SPI_SelectSlaveDevice(3);
 
-  if(channelNb)
+  /*if(channelNb)
     Analog_Input[channelNb].putPtr = &Analog_Input[channelNb].values[position1];
   else
-    Analog_Input[channelNb].putPtr = &Analog_Input[channelNb].values[position0];
+    Analog_Input[channelNb].putPtr = &Analog_Input[channelNb].values[position0];*/
 
   //selecting the correct channel
   switch (channelNb)
@@ -111,7 +111,13 @@ bool Analog_Get(const uint8_t channelNb)
   SPI_Exchange(data, Analog_Input[channelNb].putPtr);
 
   getMedian(channelNb);
-  if(channelNb)
+
+  if (Analog_Input[channelNb].putPtr == &(Analog_Input[channelNb].values[4]))
+    Analog_Input[channelNb].putPtr = &(Analog_Input[channelNb].values[0]);
+  else
+    Analog_Input[channelNb].putPtr ++;
+
+  /*if(channelNb)
     {
       position1++;
       if (position1 == 5)
@@ -122,7 +128,7 @@ bool Analog_Get(const uint8_t channelNb)
       position0++;
         if (position0 == 5)
   	position0 = 0;
-    }
+    }*/
 
 
   return TRUE;
