@@ -228,24 +228,24 @@ void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
   switch(slaveAddress)
   {
     //LTC2704
-    case 0:
+    case 4:
       GPIOE_PCOR |= (GPIO7 | GPIO8);
       break;
 
     //LTC2600
-    case 1:
+    case 5:
       GPIOE_PSOR |= GPIO7;
       GPIOE_PCOR |= GPIO8;
       break;
 
     //LTC2498
-    case 2:
+    case 6:
       GPIOE_PCOR |= GPIO7;
       GPIOE_PSOR |= GPIO8;
       break;
 
     //LTC1859
-    case 3:
+    case 7:
       GPIOE_PSOR |= (GPIO7 | GPIO8);
       break;
   }
