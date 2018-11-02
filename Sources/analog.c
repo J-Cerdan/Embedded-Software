@@ -31,10 +31,40 @@
 //used to build the data that will be sent to the analog chip
 static const uint16_t Channel_Mask = 0x8400;
 
-static const uint8_t Analog_Address = 0x3;
+static const uint8_t Analog_Address = 0x03;
 
 TAnalogInput Analog_Input[ANALOG_NB_INPUTS];
 
+static const uint8_t DAC_Select = 0x01;
+
+static const uint16_t Mid_Scale = 0x8000;
+
+static const uint8_t Span_Code = 0x03;
+
+static const uint32_t All_DACs = 0x0f0000;
+
+static const uint32_t Init_Command = 0x800000;
+
+static const uint32_t Message_Command = 0x700000;
+
+/*! @brief Function to write to the DAC
+ *
+ *  @param channelNb is the number of the analog input channel to sample.
+ *  @param data is data to transmit.
+ *
+ *  @return bool - true if the data was sent successfully.
+ *
+ */
+bool Analog_Put(const uint32union_t data, const uint8_t channelNb)
+{
+
+  PMcL_SPI_Adv_SelectSlaveDevice(4);
+  PMcL_SPI_Adv_Exchange(data.s.Hi, Analog_Input[channelNb].putPtr, DAC_Select, TRUE);
+  PMcL_SPI_Adv_Exchange(data.s.Lo, Analog_Input[channelNb].putPtr, DAC_Select, FALSE);
+
+  return TRUE;
+
+}
 
 /*! @brief Function to obtain and store median values
  *
@@ -53,30 +83,52 @@ bool Analog_Init(const uint32_t moduleClock)
 
   //set the Analog_Input elements to 0;
   for (uint8_t i = 0; i < ANALOG_NB_INPUTS; i++)
+  {
+    Analog_Input[i].value.l = 0;
+    Analog_Input[i].oldValue.l = 0;
+
+    for (uint8_t j = 0; j < ANALOG_WINDOW_SIZE; j++)
     {
-      Analog_Input[i].value.l = 0;
-      Analog_Input[i].oldValue.l = 0;
-
-      for (uint8_t j = 0; j < ANALOG_WINDOW_SIZE; j++)
-      	{
-      	  Analog_Input[i].values[j] = 0;
-      	}
-
-      Analog_Input[i].putPtr = &Analog_Input[i].values[0];
-
+      Analog_Input[i].values[j] = 0;
     }
+
+    Analog_Input[i].putPtr = &Analog_Input[i].values[0];
+
+  }
 
   //build the TSPIModule struct to send to the SPI_init
   TSPIModule SPIValues;
   SPIValues.isMaster = TRUE;
   SPIValues.continuousClock = FALSE;
-  SPIValues.inactiveHighClock = FALSE;
-  SPIValues.changedOnLeadingClockEdge = FALSE;
-  SPIValues.LSBFirst = FALSE;
-  SPIValues.baudRate = 1000000;
+  SPIValues.ctar[0].frameSize = 32;
+  SPIValues.ctar[1].frameSize = 16;
+
+  for (uint8_t i = 0; i < 2; i++)
+  {
+    SPIValues.ctar[i].clockPolarity = SPI_CLOCK_POLARITY_INACTIVE_LOW;
+    SPIValues.ctar[i].clockPhase = SPI_CLOCK_PHASE_CAPTURED_ON_LEADING;
+    SPIValues.ctar[i].firstBit = SPI_FIRST_BIT_MSB;
+    SPIValues.ctar[i].delayAfterTransfer = 5000;
+    SPIValues.ctar[i].baudRate = 1000000;
+  }
+
 
   //call SPI_Init
-  return SPI_Init(&SPIValues, moduleClock);
+  SPI_Init(&SPIValues, moduleClock);
+
+  //Initalise DAC
+  uint16_t data;
+
+
+  //Set all DACs to -10V to +10V bipolar range
+  //Set all DACs to mid-scale
+  //Update all DACs for both span and code
+  data = Init_Command | All_DACs | Span_Code;
+  PMcL_SPI_Adv_Exchange(data, Analog_Input[channelNb].putPtr, DAC_Select, FALSE);
+  data = Init_Command | All_DACs | Mid_Scale;
+  PMcL_SPI_Adv_Exchange(data, Analog_Input[channelNb].putPtr, DAC_Select, FALSE);
+
+  return TRUE;
 }
 
 

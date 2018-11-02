@@ -254,6 +254,14 @@ void SPI_SelectSlaveDevice(const uint8_t slaveAddress)
 
 void SPI_Exchange(const uint16_t dataTx, uint16_t* const dataRx)
 {
+  //TODO Select CTAR to use
+  // Pass in uint8_t const ctas as parameter
+  //SPI2_PUSHR |= SPI_PUSHR_CTAS(ctas);
+
+  //Whether transaction should be a continuously asserted peripheral chip signal
+  // SPI2_PUSHR |= SPI_PUSHR_CONT_MASK;
+
+
   uint16_t SPIData;
 
   //Stores data to send
