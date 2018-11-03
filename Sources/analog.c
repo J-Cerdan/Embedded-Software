@@ -20,8 +20,8 @@
 #include "types.h"
 #include "analog.h"
 #include "PE_Types.h"
-#include "SPI.h"
 #include "median.h"
+#include "PMcL_SPI_Adv.h"
 
 
 //used to determine channel 0 or 1
@@ -37,15 +37,12 @@ TAnalogInput Analog_Input[ANALOG_NB_INPUTS];
 
 static const uint8_t DAC_Select = 0x01;
 
-static const uint16_t Mid_Scale = 0x8000;
+//Initialise Command to all DACs to Mid_Scale with Span
+static uint32union_t Init_Command;
 
-static const uint8_t Span_Code = 0x03;
+//Message to either channel 0 or 1
+static const uint16_t Message_Command[] = {0x0070, 0x0072};
 
-static const uint32_t All_DACs = 0x0f0000;
-
-static const uint32_t Init_Command = 0x800000;
-
-static const uint32_t Message_Command = 0x700000;
 
 /*! @brief Function to write to the DAC
  *
@@ -55,12 +52,17 @@ static const uint32_t Message_Command = 0x700000;
  *  @return bool - true if the data was sent successfully.
  *
  */
-bool Analog_Put(const uint32union_t data, const uint8_t channelNb)
+bool Analog_Put(const uint16_t data, const uint8_t channelNb)
 {
 
   PMcL_SPI_Adv_SelectSlaveDevice(4);
-  PMcL_SPI_Adv_Exchange(data.s.Hi, Analog_Input[channelNb].putPtr, DAC_Select, TRUE);
-  PMcL_SPI_Adv_Exchange(data.s.Lo, Analog_Input[channelNb].putPtr, DAC_Select, FALSE);
+
+  if (channelNb == 0 || channelNb == 1)
+  {
+    PMcL_SPI_Adv_Exchange(Message_Command[channelNb], NULL, DAC_Select, TRUE);
+    PMcL_SPI_Adv_Exchange(data, NULL, DAC_Select, FALSE);
+  }
+
 
   return TRUE;
 
@@ -102,31 +104,32 @@ bool Analog_Init(const uint32_t moduleClock)
   SPIValues.continuousClock = FALSE;
   SPIValues.ctar[0].frameSize = 32;
   SPIValues.ctar[1].frameSize = 16;
+  SPIValues.ctar[0].delayAfterTransfer = 5000;
+  SPIValues.ctar[1].delayAfterTransfer = 0;
+
 
   for (uint8_t i = 0; i < 2; i++)
   {
     SPIValues.ctar[i].clockPolarity = SPI_CLOCK_POLARITY_INACTIVE_LOW;
     SPIValues.ctar[i].clockPhase = SPI_CLOCK_PHASE_CAPTURED_ON_LEADING;
     SPIValues.ctar[i].firstBit = SPI_FIRST_BIT_MSB;
-    SPIValues.ctar[i].delayAfterTransfer = 5000;
     SPIValues.ctar[i].baudRate = 1000000;
   }
 
 
   //call SPI_Init
-  SPI_Init(&SPIValues, moduleClock);
+  PMcL_SPI_Adv_Init(&SPIValues, moduleClock);
 
   //Initalise DAC
-  uint16_t data;
-
-
   //Set all DACs to -10V to +10V bipolar range
   //Set all DACs to mid-scale
   //Update all DACs for both span and code
-  data = Init_Command | All_DACs | Span_Code;
-  PMcL_SPI_Adv_Exchange(data, Analog_Input[channelNb].putPtr, DAC_Select, FALSE);
-  data = Init_Command | All_DACs | Mid_Scale;
-  PMcL_SPI_Adv_Exchange(data, Analog_Input[channelNb].putPtr, DAC_Select, FALSE);
+
+  Init_Command.l = 0x008f8003;
+
+  PMcL_SPI_Adv_SelectSlaveDevice(4);
+  PMcL_SPI_Adv_Exchange(Init_Command.s.Hi, NULL, DAC_Select, TRUE);
+  PMcL_SPI_Adv_Exchange(Init_Command.s.Lo, NULL, DAC_Select, FALSE);
 
   return TRUE;
 }
@@ -136,7 +139,7 @@ bool Analog_Get(const uint8_t channelNb)
 {
   uint16_t data;
 
-  SPI_SelectSlaveDevice(7);
+  PMcL_SPI_Adv_SelectSlaveDevice(7);
 
   //selecting the correct channel
   switch (channelNb)

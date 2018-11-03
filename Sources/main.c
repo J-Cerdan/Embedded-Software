@@ -50,6 +50,7 @@
 #include "analog.h"
 #include "OS.h"
 #include "ThreadManage.h"
+#include "Waves.h"
 
 
 //macros defined for determining which command protocol has been sent
@@ -84,6 +85,9 @@ static uint8_t Hours = 0, Minutes = 0, Seconds = 0;
 OS_THREAD_STACK(PacketStack, THREAD_STACK_SIZE);
 OS_THREAD_STACK(InitStack, THREAD_STACK_SIZE);
 OS_THREAD_STACK(PITStack, THREAD_STACK_SIZE);
+
+static const uint8_t DACCHANNEL = 1;
+
 
 
 
@@ -337,7 +341,14 @@ static void TowerNumberModeInit(void)
  */
 static void PITCallback(void* arg)
 {
-  Analog_Get(ADCCHANNEL);
+ // Analog_Get(ADCCHANNEL);
+
+  static uint16_t index = 0;
+
+  Analog_Put(WAVES_SQUAREWAVE[index], ADCCHANNEL);
+
+  index = (index + 10) % 10000;
+
 }
 
 
@@ -441,7 +452,7 @@ static void InitThread(void* arg)
       LEDs_On(LED_ORANGE);
 
     //setup the PIT and call for Channel 0 to be set up
-    PIT_Set(10000000, TRUE);
+    PIT_Set(1000000, TRUE);
     CH01SecondTimerInit();
 
     //handles the initialization tower number and mode in the flash
