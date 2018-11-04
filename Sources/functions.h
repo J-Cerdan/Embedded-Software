@@ -1,5 +1,5 @@
-#ifndef WAVES_H
-#define WAVES_H
+#ifndef FUNCTIONS_H
+#define FUNCTIONS_H
 
 #include "types.h"
 
@@ -7,12 +7,12 @@
 
 //lookup table contianting the values for the various waves
 //values between 0 and 32767
-extern const uint16_t WAVES_SINEWAVE[MAX_WAVE_SIZE];
+extern const uint16_t FUNCTIONS_SINEWAVE[MAX_WAVE_SIZE];
 
-extern const uint16_t WAVES_TRIANGLEWAVE[MAX_WAVE_SIZE];
+extern const uint16_t FUNCTIONS_TRIANGLEWAVE[MAX_WAVE_SIZE];
 
-extern const uint16_t WAVES_SQUAREWAVE[MAX_WAVE_SIZE];
+extern const uint16_t FUNCTIONS_SQUAREWAVE[MAX_WAVE_SIZE];
 
-extern const uint16_t WAVES_SAWTOOTHWAVE[MAX_WAVE_SIZE];
+extern const uint16_t FUNCTIONS_SAWTOOTHWAVE[MAX_WAVE_SIZE];
 
 #endif

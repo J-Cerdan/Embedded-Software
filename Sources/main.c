@@ -51,6 +51,7 @@
 #include "OS.h"
 #include "ThreadManage.h"
 #include "functions.h"
+#include "AWG.h"
 
 
 //macros defined for determining which command protocol has been sent
@@ -63,6 +64,7 @@
 #define PACKET_SET_TIME 0x0C
 #define PACKET_PROTOCOL_MODE 0x0A
 #define PACKET_ANALOG_INPUT_VALUE 0x50
+#define PACKET_AWG_COMMANDS 0x60
 
 
 //global private constant to store the baudRate
@@ -251,7 +253,47 @@ static bool HandleSpecialPacket(bool startUp)
  return FALSE;
 }
 
+/*static HandleAWGPacket(void)
+{
+  switch (Packet_Parameter1)
+    {
+      case (0x00):
+        success = HandleStatus();
+        break;
 
+      case (PACKET_PROGRAM_BYTE):
+        success = HandleProgramPacket();
+        break;
+
+      case (PACKET_READ_BYTE):
+        success = HandleReadPacket();
+        break;
+
+      case (PACKET_VERSION):
+        success = HandleVersionPacket(FALSE);
+        break;
+
+      case (PACKET_NUMBER):
+        success = HandleNumberPacket(FALSE);
+        break;
+
+      case (PACKET_TOWER_MODE):
+        success = HandleModePacket(FALSE);
+        break;
+
+      case (PACKET_SET_TIME):
+        success = HandleTimePacket();
+        break;
+
+      case (PACKET_PROTOCOL_MODE):
+        success = HandleProtocolPacket(FALSE);
+        break;
+
+      case (PACKET_AWG_COMMANDS):
+        success = HandleAWGPacket();
+        break;
+    }
+}*/
 
 /*! @brief Handles the packets that comes from the PC and determines what to do
  *
@@ -296,6 +338,10 @@ static void HandlePacket(void)
 
     case (PACKET_PROTOCOL_MODE):
       success = HandleProtocolPacket(FALSE);
+      break;
+
+    case (PACKET_AWG_COMMANDS):
+      //success = HandleAWGPacket();
       break;
   }
 
@@ -342,7 +388,7 @@ static void PITCallback(void* arg)
 {
   static uint16_t index = 0;
   uint16_t overflow = 0;
-  Analog_Put(ADCCHANNEL, WAVES_SINEWAVE[index]);
+  Analog_Put(ADCCHANNEL, FUNCTIONS_SINEWAVE[index]);
   //index += 10;
 
   index = (index + 15) % 10000;
@@ -396,15 +442,9 @@ static void DACChannelZeroThread(void* arg)
   {
     (void)OS_SemaphoreWait(DACChannelZero, 0);
 
-    if (TRUE) //check to see if channel is active
+    if (AWG_DAC_CHANNELS[0].active) //check to see if channel is active
     {
-	static uint16_t index = 0;
-	  uint16_t overflow = 0;
-	  Analog_Put(0, (WAVES_SINEWAVE[index] / 10));
-	  //index += 10;
-
-	  index = (index + 15) % 10000;
-      //do analogue put
+      Analog_Put(0, AWG_SampleGet(0));
     }
   }
 }
@@ -415,31 +455,11 @@ static void DACChannelOneThread(void* arg)
     {
       (void)OS_SemaphoreWait(DACChannelOne, 0);
 
-      if (TRUE) //check to see if channel is active
+      if (AWG_DAC_CHANNELS[1].active) //check to see if channel is active
       {
-	  static uint16_t index = 0;
-	  static uint16_t value;
-	  value = WAVES_SINEWAVE[index];
-	  if (value > 32767)
-	  {
-	    value -= 32767;
-	    value /= 100;
-	    value *= 100;
-	    value += 32767;
-	  }
-	  else
-	  {
-	    value = 32767 - value;
-	    value /= 100;
-	    value *= 100;
-	    value = 32767 - value;
-	  }
-	    Analog_Put(1, value);
-	    //index += 10;
-
-	    index = (index + 15) % 10000;
-        //do analogue put
+	Analog_Put(1, AWG_SampleGet(1));
       }
+
     }
 }
 
@@ -499,7 +519,7 @@ static void InitThread(void* arg)
 
     if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init() && Analog_Init(CPU_BUS_CLK_HZ)
 	&&  RTC_Init(RTCCallback, NULL) && PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL) &&
-	FTM_Init())
+	FTM_Init() && AWG_Init())
       LEDs_On(LED_ORANGE);
 
     //setup the PIT and call for Channel 0 to be set up

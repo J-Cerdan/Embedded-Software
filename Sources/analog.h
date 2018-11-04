@@ -55,6 +55,12 @@ bool Analog_Init(const uint32_t moduleClock);
  */
 bool Analog_Get(const uint8_t channelNb);
 
+/*! @brief Sends a sample to a analog output channel.
+ *
+ *  @param channelNb is the number of the analog output channel to send sample.
+ *  @param data is the sample date to output.
+ *  @return bool - true if the sample was sent successfully.
+ */
 bool Analog_Put(const uint8_t channelNb, const uint16_t data);
 
 #endif
