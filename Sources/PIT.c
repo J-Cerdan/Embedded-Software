@@ -33,7 +33,8 @@ static void* CallBackArgument;
 
 
 //semaphore for PITThread()
-OS_ECB* CntDone;
+OS_ECB* DACChannelZero;
+OS_ECB* DACChannelOne;
 
 
 static void PITThread(void* arg);
@@ -64,7 +65,8 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
   CallBackArgument = userArguments;
 
   //create semaphore
-  CntDone = OS_SemaphoreCreate(0);
+  DACChannelZero = OS_SemaphoreCreate(0);
+  DACChannelOne = OS_SemaphoreCreate(0);
 
   return TRUE;
 
@@ -112,14 +114,24 @@ void PIT_Enable(const bool enable)
 void __attribute__ ((interrupt)) PIT_ISR(void)
 {
   OS_ISREnter();
+  static bool channelZero = TRUE;
   //Write 1 to clear interrupt flag
   PIT_TFLG0 |= PIT_TFLG_TIF_MASK;
 
-  if (CallBack)
-    (*CallBack) (CallBackArgument); //calls the user call back function
+  //if (CallBack)
+    //(*CallBack) (CallBackArgument); //calls the user call back function
 
-  //signal the semaphore
-  (void)OS_SemaphoreSignal(CntDone);
+  if (channelZero)
+  {
+    //signal the semaphore
+    (void)OS_SemaphoreSignal(DACChannelZero);
+    channelZero = FALSE;
+  }
+  else
+  {
+      (void)OS_SemaphoreSignal(DACChannelOne);
+      channelZero = TRUE;
+  }
 
   OS_ISRExit();
 

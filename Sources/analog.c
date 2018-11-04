@@ -20,7 +20,7 @@
 #include "types.h"
 #include "analog.h"
 #include "PE_Types.h"
-#include "SPI.h"
+#include "PMcL_SPI_Adv.h"
 #include "median.h"
 
 
@@ -28,10 +28,17 @@
 #define CH_ZERO 0
 #define CH_ONE 4
 
-//used to build the data that will be sent to the analog chip
-static const uint16_t Channel_Mask = 0x8400;
+static const uint8_t ADC_CTAS = 0;
+static const uint8_t DAC_CTAS = 1;
 
-static const uint8_t Analog_Address = 0x3;
+//used to build the data that will be sent to the analog chip
+static const uint16_t ADC_Mask = 0x8400;
+static uint16_t DAC_Command[] = {0x0070, 0x0072};
+
+
+static const uint8_t Analog_Address = 0x7;
+//command to send to the DAC to set up the span for all channels
+static uint32union_t DACSetupCommand;
 
 TAnalogInput Analog_Input[ANALOG_NB_INPUTS];
 
@@ -50,6 +57,7 @@ void getMedian(const uint8_t channelNb)
 
 bool Analog_Init(const uint32_t moduleClock)
 {
+  DACSetupCommand.l = 0x008F0003;
 
   //set the Analog_Input elements to 0;
   for (uint8_t i = 0; i < ANALOG_NB_INPUTS; i++)
@@ -70,13 +78,28 @@ bool Analog_Init(const uint32_t moduleClock)
   TSPIModule SPIValues;
   SPIValues.isMaster = TRUE;
   SPIValues.continuousClock = FALSE;
-  SPIValues.inactiveHighClock = FALSE;
-  SPIValues.changedOnLeadingClockEdge = FALSE;
-  SPIValues.LSBFirst = FALSE;
-  SPIValues.baudRate = 1000000;
+  SPIValues.ctar[0].frameSize = 16;
+  SPIValues.ctar[1].frameSize = 32;
+  SPIValues.ctar[0].delayAfterTransfer = 5000;
+  SPIValues.ctar[1].delayAfterTransfer = 0;
+  for (uint8_t i = 0; i < 2; i++)
+  {
+    SPIValues.ctar[i].clockPolarity = SPI_CLOCK_POLARITY_INACTIVE_LOW;
+    SPIValues.ctar[i].clockPhase = SPI_CLOCK_PHASE_CAPTURED_ON_LEADING;
+    SPIValues.ctar[i].firstBit = SPI_FIRST_BIT_MSB;
+    SPIValues.ctar[i].baudRate = 1000000;
+  }
 
   //call SPI_Init
-  return SPI_Init(&SPIValues, moduleClock);
+  PMcL_SPI_Adv_Init(&SPIValues, moduleClock);
+
+  PMcL_SPI_Adv_SelectSlaveDevice(4);
+
+  //set up all the DAC channel spans
+  PMcL_SPI_Adv_Exchange(DACSetupCommand.s.Hi, NULL, DAC_CTAS, TRUE);
+  PMcL_SPI_Adv_Exchange(DACSetupCommand.s.Lo, NULL, DAC_CTAS, FALSE);
+
+  return TRUE;
 }
 
 
@@ -84,24 +107,24 @@ bool Analog_Get(const uint8_t channelNb)
 {
   uint16_t data;
 
-  SPI_SelectSlaveDevice(7);
+  PMcL_SPI_Adv_SelectSlaveDevice(7);
 
   //selecting the correct channel
   switch (channelNb)
   {
-    case 0: data = Channel_Mask | (CH_ZERO << 12);
+    case 0: data = ADC_Mask | (CH_ZERO << 12);
       break;
 
-    case 1: data = Channel_Mask | (CH_ONE << 12);
+    case 1: data = ADC_Mask | (CH_ONE << 12);
       break;
 
     default: return FALSE;
   }
 
   //perform and exchange with the analog chip
-  SPI_Exchange(data, Analog_Input[channelNb].putPtr);
+  //SPI_Exchange(data, Analog_Input[channelNb].putPtr);
 
-  SPI_Exchange(data, Analog_Input[channelNb].putPtr);
+  //SPI_Exchange(data, Analog_Input[channelNb].putPtr);
 
   getMedian(channelNb);
 
@@ -112,6 +135,18 @@ bool Analog_Get(const uint8_t channelNb)
 
 
   return TRUE;
+}
+
+bool Analog_Put(const uint8_t channelNb, const uint16_t data)
+{
+  PMcL_SPI_Adv_SelectSlaveDevice(4);
+  if (channelNb == 0 || channelNb == 1)
+  {
+    PMcL_SPI_Adv_Exchange(DAC_Command[channelNb], NULL, DAC_CTAS, TRUE);
+    PMcL_SPI_Adv_Exchange(data, NULL, DAC_CTAS, FALSE);
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /*!

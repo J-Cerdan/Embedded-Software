@@ -14,12 +14,14 @@
 
 /***************************Thread Priority**************************/
 #define INIT_THREAD 0
-#define UART_RX_THREAD 1
-#define UART_TX_THREAD 2
-#define PIT_THREAD 3
-#define RTC_THREAD 4
-#define FTM_THREAD 5
-#define PACKET_THREAD 6
+#define DAC_CHANNEL_ZERO 1
+#define DAC_CHANNEL_ONE 2
+#define UART_RX_THREAD 3
+#define UART_TX_THREAD 4
+//#define PIT_THREAD 5
+#define RTC_THREAD 5
+#define FTM_THREAD 6
+#define PACKET_THREAD 7
 
 #define THREAD_STACK_SIZE 100
 

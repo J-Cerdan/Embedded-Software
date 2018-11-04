@@ -19,7 +19,8 @@
 #include "types.h"
 #include "OS.h"
 
-extern OS_ECB* CntDone;
+extern OS_ECB* DACChannelZero;
+extern OS_ECB* DACChannelOne;
 
 /*! @brief Sets up the PIT before first use.
  *

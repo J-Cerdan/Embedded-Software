@@ -50,6 +50,7 @@
 #include "analog.h"
 #include "OS.h"
 #include "ThreadManage.h"
+#include "waves.h"
 
 
 //macros defined for determining which command protocol has been sent
@@ -83,7 +84,9 @@ static uint8_t Hours = 0, Minutes = 0, Seconds = 0;
 //PacketThread and InitThread stack
 OS_THREAD_STACK(PacketStack, THREAD_STACK_SIZE);
 OS_THREAD_STACK(InitStack, THREAD_STACK_SIZE);
-OS_THREAD_STACK(PITStack, THREAD_STACK_SIZE);
+//OS_THREAD_STACK(PITStack, THREAD_STACK_SIZE);
+OS_THREAD_STACK(DACZeroStack, THREAD_STACK_SIZE);
+OS_THREAD_STACK(DACOneStack, THREAD_STACK_SIZE);
 
 
 
@@ -337,7 +340,13 @@ static void TowerNumberModeInit(void)
  */
 static void PITCallback(void* arg)
 {
-  Analog_Get(ADCCHANNEL);
+  static uint16_t index = 0;
+  uint16_t overflow = 0;
+  Analog_Put(ADCCHANNEL, WAVES_SINEWAVE[index]);
+  //index += 10;
+
+  index = (index + 15) % 10000;
+
 }
 
 
@@ -381,11 +390,49 @@ static void CH01SecondTimerInit(void)
   FTM_Set(&Ch0);
 }
 
-static void PITThread(void* arg)
+static void DACChannelZeroThread(void* arg)
 {
   for (;;)
   {
-    (void)OS_SemaphoreWait(CntDone, 0);
+    (void)OS_SemaphoreWait(DACChannelZero, 0);
+
+    if (TRUE) //check to see if channel is active
+    {
+	static uint16_t index = 0;
+	  uint16_t overflow = 0;
+	  Analog_Put(0, WAVES_SINEWAVE[index]);
+	  //index += 10;
+
+	  index = (index + 15) % 10000;
+      //do analogue put
+    }
+  }
+}
+
+static void DACChannelOneThread(void* arg)
+{
+  for (;;)
+    {
+      (void)OS_SemaphoreWait(DACChannelOne, 0);
+
+      if (TRUE) //check to see if channel is active
+      {
+	  static uint16_t index = 0;
+	    uint16_t overflow = 0;
+	    Analog_Put(1, WAVES_SQUAREWAVE[index]);
+	    //index += 10;
+
+	    index = (index + 15) % 10000;
+        //do analogue put
+      }
+    }
+}
+
+/*static void PITThread(void* arg)
+{
+  for (;;)
+  {
+    (void)OS_SemaphoreWait(DACChannelZero, 0);
 
     //counter used to determine if 500ms has passed
     static uint8_t ledToggleCount = 0;
@@ -406,7 +453,7 @@ static void PITThread(void* arg)
 	Packet_Put(PACKET_ANALOG_INPUT_VALUE, 0x00, Analog_Input[ADCCHANNEL].value.s.Lo, Analog_Input[ADCCHANNEL].value.s.Hi);
     }
   }
-}
+}*/
 
 /*! @brief Thread to handle packets received
  *
@@ -441,7 +488,7 @@ static void InitThread(void* arg)
       LEDs_On(LED_ORANGE);
 
     //setup the PIT and call for Channel 0 to be set up
-    PIT_Set(10000000, TRUE);
+    PIT_Set(500000, TRUE);
     CH01SecondTimerInit();
 
     //handles the initialization tower number and mode in the flash
@@ -478,7 +525,9 @@ int main(void)
 
   OS_ThreadCreate(PacketThread, NULL, &PacketStack[THREAD_STACK_SIZE - 1], PACKET_THREAD);
 
-  OS_ThreadCreate(PITThread, NULL, &PITStack[THREAD_STACK_SIZE - 1], PIT_THREAD);
+  OS_ThreadCreate(DACChannelZeroThread, NULL, &DACZeroStack[THREAD_STACK_SIZE - 1], DAC_CHANNEL_ZERO);
+
+  OS_ThreadCreate(DACChannelOneThread, NULL, &DACOneStack[THREAD_STACK_SIZE - 1], DAC_CHANNEL_ONE);
 
   //begin multithreading
   OS_Start();

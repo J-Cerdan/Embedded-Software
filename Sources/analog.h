@@ -55,6 +55,8 @@ bool Analog_Init(const uint32_t moduleClock);
  */
 bool Analog_Get(const uint8_t channelNb);
 
+bool Analog_Put(const uint8_t channelNb, const uint16_t data);
+
 #endif
 
 /*!
