@@ -20,6 +20,8 @@
 #include "OS.h"
 
 extern OS_ECB* CntDone;
+extern OS_ECB* Ch00Enable;
+extern OS_ECB* Ch01Enable;
 
 /*! @brief Sets up the PIT before first use.
  *

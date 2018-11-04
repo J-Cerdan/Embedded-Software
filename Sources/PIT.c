@@ -35,6 +35,8 @@ static void* CallBackArgument;
 //semaphore for PITThread()
 OS_ECB* CntDone;
 
+OS_ECB* Ch00Enable;
+OS_ECB* Ch01Enable;
 
 static void PITThread(void* arg);
 
@@ -65,6 +67,8 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
 
   //create semaphore
   CntDone = OS_SemaphoreCreate(0);
+  Ch00Enable = OS_SemaphoreCreate(0);
+  Ch01Enable = OS_SemaphoreCreate(0);
 
   return TRUE;
 
@@ -111,6 +115,8 @@ void PIT_Enable(const bool enable)
 
 void __attribute__ ((interrupt)) PIT_ISR(void)
 {
+  static uint8_t EnableCh00 = TRUE;
+
   OS_ISREnter();
   //Write 1 to clear interrupt flag
   PIT_TFLG0 |= PIT_TFLG_TIF_MASK;
@@ -120,6 +126,17 @@ void __attribute__ ((interrupt)) PIT_ISR(void)
 
   //signal the semaphore
   (void)OS_SemaphoreSignal(CntDone);
+
+  if (EnableCh00)
+  {
+    (void)OS_SemaphoreSignal(Ch00Enable);
+    EnableCh00 = FALSE;
+  }
+  else
+  {
+    (void)OS_SemaphoreSignal(Ch01Enable);
+    EnableCh00 = TRUE;
+  }
 
   OS_ISRExit();
 

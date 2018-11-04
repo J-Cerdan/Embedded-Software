@@ -50,7 +50,8 @@
 #include "analog.h"
 #include "OS.h"
 #include "ThreadManage.h"
-#include "Waves.h"
+#include "Waveform.h"
+#include "AWG.h"
 
 
 //macros defined for determining which command protocol has been sent
@@ -85,10 +86,12 @@ static uint8_t Hours = 0, Minutes = 0, Seconds = 0;
 OS_THREAD_STACK(PacketStack, THREAD_STACK_SIZE);
 OS_THREAD_STACK(InitStack, THREAD_STACK_SIZE);
 OS_THREAD_STACK(PITStack, THREAD_STACK_SIZE);
+OS_THREAD_STACK(Ch00Stack, THREAD_STACK_SIZE);
+OS_THREAD_STACK(Ch01Stack, THREAD_STACK_SIZE);
 
-static const uint8_t DACCHANNEL = 1;
 
-
+static const uint8_t DACCHANNEL00 = 0;
+static const uint8_t DACCHANNEL01 = 1;
 
 
 /*! @brief Handles the "Program" request packet
@@ -341,13 +344,8 @@ static void TowerNumberModeInit(void)
  */
 static void PITCallback(void* arg)
 {
- // Analog_Get(ADCCHANNEL);
 
-  static uint16_t index = 0;
-
-  Analog_Put(WAVES_SQUAREWAVE[index], ADCCHANNEL);
-
-  index = (index + 10) % 10000;
+  Analog_Get(ADCCHANNEL);
 
 }
 
@@ -452,7 +450,7 @@ static void InitThread(void* arg)
       LEDs_On(LED_ORANGE);
 
     //setup the PIT and call for Channel 0 to be set up
-    PIT_Set(1000000, TRUE);
+    PIT_Set(500000, TRUE);
     CH01SecondTimerInit();
 
     //handles the initialization tower number and mode in the flash
@@ -470,6 +468,52 @@ static void InitThread(void* arg)
 }
 
 
+static void Ch00Thread(void* arg)
+{
+  for (;;)
+  {
+    //check if channel active
+    (void)OS_SemaphoreWait(Ch00Enable, 0);
+
+    /*
+    static uint16_t Ch00index = 0;
+
+    Analog_Put(VoltageAdjust(WAVEFORM_SINEWAVE[Ch00index], 7converted voltage input function, 22936voltage input), DACCHANNEL00);
+
+    Ch00index = (Ch00index + 10converted frequency function) % 10000;
+    */
+
+    if (DACChannel[DACCHANNEL00].active)
+    {
+      Analog_Put(AWG_DAC_Get(DACCHANNEL00), DACCHANNEL00);
+    }
+  }
+}
+
+static void Ch01Thread(void* arg)
+{
+  for (;;)
+  {
+    //check if channel active
+    (void)OS_SemaphoreWait(Ch01Enable, 0);
+
+    /*
+    static uint16_t Ch01index = 0;
+
+    Analog_Put(WAVEFORM_SAWTOOTHWAVE[Ch01index], DACCHANNEL01);
+
+    Ch01index = (Ch01index + 10) % 10000;
+    */
+    if (DACChannel[DACCHANNEL01].active)
+    {
+      Analog_Put(AWG_DAC_Get(DACCHANNEL01), DACCHANNEL01);
+    }
+
+  }
+}
+
+
+
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
 /*! @brief main
  *
@@ -483,6 +527,8 @@ int main(void)
   PE_low_level_init();
   /*** End of Processor Expert internal initialization.                    ***/
 
+  AWG_Init();
+
   OS_Init(CPU_CORE_CLK_HZ, false);
 
   OS_ThreadCreate(InitThread, NULL, &InitStack[THREAD_STACK_SIZE - 1], INIT_THREAD);
@@ -490,6 +536,11 @@ int main(void)
   OS_ThreadCreate(PacketThread, NULL, &PacketStack[THREAD_STACK_SIZE - 1], PACKET_THREAD);
 
   OS_ThreadCreate(PITThread, NULL, &PITStack[THREAD_STACK_SIZE - 1], PIT_THREAD);
+
+  OS_ThreadCreate(Ch00Thread, NULL, &Ch00Stack[THREAD_STACK_SIZE - 1], CH00_THREAD);
+
+  OS_ThreadCreate(Ch01Thread, NULL, &Ch01Stack[THREAD_STACK_SIZE - 1], CH01_THREAD);
+
 
   //begin multithreading
   OS_Start();

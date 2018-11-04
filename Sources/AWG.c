@@ -13,18 +13,85 @@
 */
 
 #include "AWG.h"
+#include "PE_Types.h"
+#include "Waveform.h"
 
-typedef struct
+TAWGChannel DACChannel[NB_DAC_CHANNELS];
+
+bool AWG_Init()
 {
 
-  uint8_t waveform;      /*!< Waveform Configuration */
-  uint16union_t frequency;      /*!< Frequency Configuration */
-  uint16union_t amplitude;      /*!< Amplitude Configuration */
-  uint16union_t offset;      /*!< Offset Configuration */
+  for (uint8_t i=0; i < NB_DAC_CHANNELS; i++)
+  {
+    DACChannel[i].active = FALSE;
+    DACChannel[i].waveform = WAVEFORMS_SINEWAVE;
+    DACChannel[i].frequency = 10;
+    DACChannel[i].amplitude = 10;
+    DACChannel[i].offset = 0;
+    DACChannel[i].index = 0;
+  }
 
-} TAWG;
+  return TRUE;
 
-TAWG InputValues;
+}
+
+uint16_t VoltageAdjust(uint8_t channelNb, const uint16_t lookUpTable[])
+{
+  uint16_t centreAdjust = 0;
+
+  //equation to adjust center of waveform
+  centreAdjust = 32767 - ((DACChannel[channelNb].amplitude * 32767) / 10) + DACChannel[channelNb].offset;
+
+
+  DACChannel[channelNb].index = (DACChannel[channelNb].index + DACChannel[channelNb].frequency) % 10000;
+
+
+  //equation to adjust PP voltage of waveform
+  return (lookUpTable[DACChannel[channelNb].index] * DACChannel[channelNb].amplitude) / 10 + centreAdjust;
+}
+
+uint16_t AWG_DAC_Get(uint8_t channelNb)
+{
+  switch (DACChannel[channelNb].waveform)
+  {
+    case (WAVEFORMS_SINEWAVE):
+      return VoltageAdjust(channelNb, WAVEFORM_SINEWAVE);
+      break;
+
+    case (WAVEFORMS_SQUAREWAVE):
+      return VoltageAdjust(channelNb, WAVEFORM_TRIANGLEWAVE);
+      break;
+
+    case (WAVEFORMS_TRIANGLEWAVE):
+      return VoltageAdjust(channelNb, WAVEFORM_SQUAREWAVE);
+      break;
+
+    case (WAVEFORMS_SAWTOOTHWAVE):
+      return VoltageAdjust(channelNb, WAVEFORM_SAWTOOTHWAVE);
+      break;
+
+  }
+
+}
+
+
+/*
+//value = value from lookuptable, adjust = converted amplitude, amplitude = original amplitude
+uint16_t VoltageAdjust(uint16_t value, uint16_t adjust, uint16_t amplitude)
+{
+  uint16_t centreAdjust;
+
+
+  centreAdjust = 32767 - 0; //- original amplitude; + offset
+
+  (value*adjust)/10 + centreAdjust;
+
+  DACChannel[channelNb].index = (DACChannel[channelNb].index + DACChannel[channelNb].frequency) % 10000;
+
+
+  return value;
+}
+*/
 
 
 //Can be used for both offset and amplitude
@@ -33,6 +100,11 @@ uint16_t AmplitudeOffsetConversion(uint16_t value)
   uint16_t convertedValue;
 
   convertedValue = (value * 100) / 32767;
+
+  if(!((value * 100) / 32767))
+  {
+    return convertedValue;
+  }
 
   if (((value * 100) % 32767) >= 16384)
   {
@@ -48,6 +120,11 @@ uint16_t FrequencyConversion(uint16_t frequency)
 
   convertedFrequency = (frequency * 10) / 256;
 
+  if (!((frequency * 10) % 256))
+  {
+    return convertedFrequency;
+  }
+
   if (((frequency * 10) % 256) >= 128)
   {
     convertedFrequency++;
@@ -58,19 +135,19 @@ uint16_t FrequencyConversion(uint16_t frequency)
 
 uint16_t Average(uint16_t index, const uint16_t waveform[])
 {
-  uint16_t addition, difference, num1, num2;
+  uint16_t addition, difference, value1, value2;
 
-  num1 = waveform[index/10];
+  value1 = waveform[index/10];
 
   if (index+10 < 100000)
-    {
-      num2 = waveform[(index+10)/10];
-    }
+  {
+    value2 = waveform[(index+10)/10];
+  }
   else
-    {
-      num2 = num1;
-      num1 = waveform[0];
-    }
+  {
+    value2 = value1;
+    value1 = waveform[0];
+  }
 
   difference = num2 - num1;
 

@@ -17,6 +17,31 @@
 #ifndef SOURCES_AWG_H_
 #define SOURCES_AWG_H_
 
+#define NB_DAC_CHANNELS 2
+
+
+typedef enum
+{
+  WAVEFORMS_SINEWAVE = 0,
+  WAVEFORMS_SQUAREWAVE = 1,
+  WAVEFORMS_TRIANGLEWAVE = 2,
+  WAVEFORMS_SAWTOOTHWAVE = 3
+} TWaveforms;
+
+typedef struct
+{
+  bool active;		/*!< Active Configuration */
+  TWaveforms waveform;     /*!< Waveform Configuration */
+  uint16_t frequency;    /*!< Frequency Configuration */
+  uint8_t amplitude;    /*!< Amplitude Configuration */
+  uint16_t offset;      /*!< Offset Configuration */
+  uint16_t index;	/*!< Offset Configuration */
+
+} TAWGChannel;
+
+extern TAWGChannel DACChannel[NB_DAC_CHANNELS];
+
+
 /*! @brief Function to convert amplitude/offset value needed for waveform
  *
  *  @param value is the amplitude/offset received to be converted
