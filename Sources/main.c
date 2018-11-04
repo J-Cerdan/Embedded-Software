@@ -50,7 +50,7 @@
 #include "analog.h"
 #include "OS.h"
 #include "ThreadManage.h"
-#include "waves.h"
+#include "functions.h"
 
 
 //macros defined for determining which command protocol has been sent
@@ -400,7 +400,7 @@ static void DACChannelZeroThread(void* arg)
     {
 	static uint16_t index = 0;
 	  uint16_t overflow = 0;
-	  Analog_Put(0, WAVES_SINEWAVE[index]);
+	  Analog_Put(0, (WAVES_SINEWAVE[index] / 10));
 	  //index += 10;
 
 	  index = (index + 15) % 10000;
@@ -418,8 +418,23 @@ static void DACChannelOneThread(void* arg)
       if (TRUE) //check to see if channel is active
       {
 	  static uint16_t index = 0;
-	    uint16_t overflow = 0;
-	    Analog_Put(1, WAVES_SQUAREWAVE[index]);
+	  static uint16_t value;
+	  value = WAVES_SINEWAVE[index];
+	  if (value > 32767)
+	  {
+	    value -= 32767;
+	    value /= 100;
+	    value *= 100;
+	    value += 32767;
+	  }
+	  else
+	  {
+	    value = 32767 - value;
+	    value /= 100;
+	    value *= 100;
+	    value = 32767 - value;
+	  }
+	    Analog_Put(1, value);
 	    //index += 10;
 
 	    index = (index + 15) % 10000;
