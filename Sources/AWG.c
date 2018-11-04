@@ -12,19 +12,54 @@
 **  @{
 */
 
+#include "AWG.h"
 
-
-
-/*! @brief Function to write to calculate value needed for waveform
- *
- *  @param index is the index position of the value required for the function
- *  @param waveform is the waveform array required to obtain the value
- *
- *  @return returns the averaged value of the two values
- *
- */
-uint16_t Average(uint16_t index, const uint16_t waveform)
+typedef struct
 {
+
+  uint8_t waveform;      /*!< Waveform Configuration */
+  uint16union_t frequency;      /*!< Frequency Configuration */
+  uint16union_t amplitude;      /*!< Amplitude Configuration */
+  uint16union_t offset;      /*!< Offset Configuration */
+
+} TAWG;
+
+TAWG InputValues;
+
+
+//Can be used for both offset and amplitude
+uint16_t AmplitudeOffsetConversion(uint16_t value)
+{
+  uint16_t convertedValue;
+
+  convertedValue = (value * 100) / 32767;
+
+  if (((value * 100) % 32767) >= 16384)
+  {
+    convertedValue++;
+  }
+
+  return convertedValue;
+}
+
+uint16_t FrequencyConversion(uint16_t frequency)
+{
+  uint16_t convertedFrequency;
+
+  convertedFrequency = (frequency * 10) / 256;
+
+  if (((frequency * 10) % 256) >= 128)
+  {
+    convertedFrequency++;
+  }
+
+  return convertedFrequency;
+}
+
+uint16_t Average(uint16_t index, const uint16_t waveform[])
+{
+  uint16_t addition, difference, num1, num2;
+
   num1 = waveform[index/10];
 
   if (index+10 < 100000)
@@ -43,6 +78,8 @@ uint16_t Average(uint16_t index, const uint16_t waveform)
 
   return addition + waveform[index/10];
 }
+
+
 
 /*!
 ** @}
