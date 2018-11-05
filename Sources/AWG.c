@@ -30,14 +30,27 @@ bool AWG_Init(void)
   for (uint8_t i = 0; i < AWG_NB_CHANNELS; i++)
   {
     AWG_DAC_CHANNELS[i].waveform = SINE_FUNCTION;  	//default wave is sine
-    AWG_DAC_CHANNELS[i].frequency = 600; 		//default frequency is 1Hz
+    AWG_DAC_CHANNELS[i].frequency = 10; 		//default frequency is 1Hz
     AWG_DAC_CHANNELS[i].amplitude = 10; 		//default amplitude is 1 V
     AWG_DAC_CHANNELS[i].offset = 0; 			//default offset is 0
-    AWG_DAC_CHANNELS[i].index = 0;		//index begins at 0 always
-    AWG_DAC_CHANNELS[i].active = TRUE;			//remains inactive till PC sends signal
+    AWG_DAC_CHANNELS[i].index = 0;			//index begins at 0 always
+    AWG_DAC_CHANNELS[i].active = FALSE;			//remains inactive till PC sends signal
   }
 
   return TRUE;
+}
+
+uint16_t ApplyOffset(uint16_t value, uint8_t channelNb)
+{
+  int64_t sample = value + AWG_DAC_CHANNELS[channelNb].offset;
+
+  if (sample > 65534)
+    return 65534;
+  else if (sample < 0)
+    return 0;
+  else
+    return (uint16)sample;
+
 }
 
 uint16_t ProcessSample(const uint16 functionLookUpTable[], uint8_t channelNb)
@@ -58,6 +71,7 @@ uint16_t ProcessSample(const uint16 functionLookUpTable[], uint8_t channelNb)
     value = 32767 - value;
   }
 
+  value = ApplyOffset(value, channelNb);
   AWG_DAC_CHANNELS[channelNb].index = (AWG_DAC_CHANNELS[channelNb].index + AWG_DAC_CHANNELS[channelNb].frequency) % 10000; //maintain the index count
 
   return value;
@@ -106,18 +120,30 @@ bool AWG_UpdateFrequency(uint8_t channelNb, uint16_t frequency)
 
 bool AWG_UpdateAmplitude(uint8_t channelNb, uint16_t amplitude)
 {
-  uint64_t value = amplitude * 10;
-
-  if ((value % 3276) >= 1638)
+  if (channelNb == 0 || channelNb == 1)
   {
-    value = (value / 1638) + 1;
+    uint64_t value = amplitude * 10;
+
+    if ((value % 3276) >= 1638)
+    {
+      value = (value / 3276) + 1;
+    }
+    else
+      value /= 3276;
+
+    AWG_DAC_CHANNELS[channelNb].amplitude = (uint16_t)value;
+
+    return TRUE;
   }
-  else
-    value /= 1638;
+  return FALSE;
+}
 
-  AWG_DAC_CHANNELS[channelNb].amplitude = (uint16_t)value;
-
-  return TRUE;
+bool AWG_UpdateOffset(uint8_t channelNb, uint16_t offset)
+{
+  if (channelNb == 0 || channelNb == 1)
+  {
+    AWG_DAC_CHANNELS[channelNb].offset = (uint16_t)offset;
+  }
 }
 
 

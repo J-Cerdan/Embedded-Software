@@ -84,7 +84,7 @@ static const uint8_t ADCCHANNEL = 0;
 //RTC Time
 static uint8_t Hours = 0, Minutes = 0, Seconds = 0;
 //to store the processed sample to send to the DAC
-static uint16_t DACChanelZeroSample, DACChanelOneSample;
+static uint16_t DACChanelZeroSample = 0, DACChanelOneSample = 0;
 //checks which channel is active to edit
 static bool ChannelZeroEdit = TRUE;
 //PacketThread and InitThread stack
@@ -257,7 +257,7 @@ static bool HandleSpecialPacket(bool startUp)
  return FALSE;
 }
 
-bool HandleStatus(void)
+static bool HandleStatus(void)
 {
   if ((Packet_Parameter2 == 0 || Packet_Parameter2 == 1) && (Packet_Parameter3 == 0 || Packet_Parameter3 == 1))
   {
@@ -268,7 +268,7 @@ bool HandleStatus(void)
   return FALSE;
 }
 
-bool HandleWaveForm(void)
+static bool HandleWaveForm(void)
 {
   if ((Packet_Parameter2 >=0 && Packet_Parameter2 <= 5) && Packet_Parameter3 == 0)
   {
@@ -279,14 +279,14 @@ bool HandleWaveForm(void)
     }
     else
     {
-      AWG_DAC_CHANNELS[0].waveform = Packet_Parameter2;
+      AWG_DAC_CHANNELS[1].waveform = Packet_Parameter2;
       return TRUE;
     }
   }
   return FALSE;
 }
 
-bool HandleFrequency(void)
+static bool HandleFrequency(void)
 {
   uint16union_t frequency;
   if (ChannelZeroEdit)
@@ -313,49 +313,143 @@ bool HandleFrequency(void)
     }
     else
     {
-      AWG_UpdateFrequency(0, frequency.l);
+      AWG_UpdateFrequency(1, frequency.l);
+      return TRUE;
+    }
+  }
+}
+
+static bool HandleAmplitude(void)
+{
+  uint16union_t amplitude;
+  amplitude.s.Hi = Packet_Parameter3;
+  amplitude.s.Lo = Packet_Parameter2;
+  if (ChannelZeroEdit)
+  {
+    if (amplitude.l > AWG_MAX_AMPLITUDE)
+    {
+      return FALSE;
+    }
+    else
+    {
+      AWG_UpdateAmplitude(0, amplitude.l);
+      return TRUE;
+    }
+  }
+  else
+  {
+    if (amplitude.l > AWG_MAX_AMPLITUDE)
+    {
+      return FALSE;
+    }
+    else
+    {
+      AWG_UpdateAmplitude(1, amplitude.l);
+      return TRUE;
+    }
+  }
+}
+
+static bool HandleOffset(void)
+{
+  int16union_t offset;
+  offset.s.Hi = Packet_Parameter3;
+  offset.s.Lo = Packet_Parameter2;
+  if (ChannelZeroEdit)
+  {
+    if ((offset.l > AWG_MAX_AMPLITUDE) || (offset.l < AWG_MIN_OFFSET))
+    {
+      return FALSE;
+    }
+    else
+    {
+      AWG_UpdateOffset(0, offset.l);
+      return TRUE;
+    }
+  }
+  else
+  {
+    if ((offset.l > AWG_MAX_AMPLITUDE) || (offset.l < AWG_MIN_OFFSET))
+    {
+      return FALSE;
+    }
+    else
+    {
+      AWG_UpdateOffset(1, offset.l);
       return TRUE;
     }
   }
 
 }
 
-bool HandleAWGPacket(void)
+static bool HandleAllWaveFormsOn(void)
+{
+  if (Packet_Parameter2 == 0 && Packet_Parameter3 == 0)
+  {
+    AWG_DAC_CHANNELS[0].active = TRUE;
+    AWG_DAC_CHANNELS[1].active = TRUE;
+    return TRUE;
+  }
+  return FALSE;
+}
+
+static bool HandleAllWaveFormsOff(void)
+{
+  if (Packet_Parameter2 == 0 && Packet_Parameter3 == 0)
+  {
+    AWG_DAC_CHANNELS[0].active = FALSE;
+    AWG_DAC_CHANNELS[1].active = FALSE;
+    return TRUE;
+  }
+  return FALSE;
+}
+
+static bool HandleSetActiveChannel()
+{
+  if ((Packet_Parameter2 == 0 || Packet_Parameter2 == 1) && Packet_Parameter3 == 0)
+  {
+    ChannelZeroEdit = (bool)!Packet_Parameter2;
+    return TRUE;
+  }
+  return FALSE;
+}
+
+static bool HandleAWGPacket(void)
 {
   switch (Packet_Parameter1)
-    {
-      case (0x00):
-        return HandleStatus();
-        break;
+  {
+    case (0x00):
+      return HandleStatus();
+      break;
 
-      case (0x01):
-	return HandleWaveForm();
-        break;
+    case (0x01):
+      return HandleWaveForm();
+      break;
 
-      case (0x02):
-	return HandleFrequency();
-        break;
+    case (0x02):
+      return HandleFrequency();
+      break;
 
-      case (0x03):
-	return HandleVersionPacket(FALSE);
-        break;
+    case (0x03):
+      return HandleAmplitude();
+      break;
 
-      case (0x04):
-	return HandleNumberPacket(FALSE);
-        break;
+    case (0x04):
+      return HandleOffset();
+      break;
 
-      case (0x05):
-	return HandleModePacket(FALSE);
-        break;
+    case (0x05):
+      return HandleAllWaveFormsOn();
+      break;
 
-      case (0x06):
-	return HandleTimePacket();
-        break;
+    case (0x06):
+      return HandleAllWaveFormsOff();
+      break;
 
-      case (0x07):
-	return HandleProtocolPacket(FALSE);
-        break;
-    }
+    case (0x07):
+      return HandleSetActiveChannel();
+      break;
+  }
   return FALSE;
 }
 
@@ -405,7 +499,7 @@ static void HandlePacket(void)
       break;
 
     case (PACKET_AWG_COMMANDS):
-      //success = HandleAWGPacket();
+      success = HandleAWGPacket();
       break;
   }
 

@@ -23,13 +23,15 @@
 // Maximum number of channels
 #define AWG_NB_CHANNELS 2
 #define AWG_MAX_FREQUENCY 25600
+#define AWG_MAX_AMPLITUDE 32767
+#define AWG_MIN_OFFSET -32767
 
 typedef enum
 {
   SINE_FUNCTION = 0,
   SQUARE_FUNCTION = 1,
-  SAWTOOTH_FUNCTION = 2,
-  TRIANGLE_FUNCTION = 3
+  TRIANGLE_FUNCTION = 2,
+  SAWTOOTH_FUNCTION = 3
 } FunctionWaveForm;
 
 typedef struct
@@ -37,8 +39,8 @@ typedef struct
   FunctionWaveForm  waveform;		/*!< The wave form for this channel to display. */
   uint16_t frequency;                  	/*!< The frequency of the wave multiplied by 10. */
   uint8_t amplitude;    		/*!< the amplitude of the wave multiplied by 10. */
-  uint8_t offset;                       /*!< The offset of the wave when displayed */
-  uint16_t index; /*!< The index */
+  int16_t offset;                       /*!< The offset of the wave when displayed */
+  uint16_t index; 			/*!< The index */
   bool active;
 } TAWGDacChannel;
 
@@ -62,6 +64,8 @@ bool AWG_UpdateFrequency(uint8_t channelNb, uint16_t frequency);
 
 
 bool AWG_UpdateAmplitude(uint8_t channelNb, uint16_t amplitude);
+
+bool AWG_UpdateOffset(uint8_t channelNb, uint16_t offset);
 
 
 #endif
