@@ -41,6 +41,14 @@ typedef struct
 
 extern TAWGChannel DACChannel[NB_DAC_CHANNELS];
 
+bool AWG_Init();
+
+uint16_t VoltageAdjust(uint8_t channelNb, const uint16_t lookUpTable[]);
+
+uint16_t AWG_DAC_Get(uint8_t channelNb);
+
+
+
 
 /*! @brief Function to convert amplitude/offset value needed for waveform
  *

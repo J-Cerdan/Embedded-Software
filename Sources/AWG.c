@@ -23,7 +23,7 @@ bool AWG_Init()
 
   for (uint8_t i=0; i < NB_DAC_CHANNELS; i++)
   {
-    DACChannel[i].active = FALSE;
+    DACChannel[i].active = TRUE;
     DACChannel[i].waveform = WAVEFORMS_SINEWAVE;
     DACChannel[i].frequency = 10;
     DACChannel[i].amplitude = 10;
@@ -45,9 +45,8 @@ uint16_t VoltageAdjust(uint8_t channelNb, const uint16_t lookUpTable[])
 
   DACChannel[channelNb].index = (DACChannel[channelNb].index + DACChannel[channelNb].frequency) % 10000;
 
-
   //equation to adjust PP voltage of waveform
-  return (lookUpTable[DACChannel[channelNb].index] * DACChannel[channelNb].amplitude) / 10 + centreAdjust;
+  return ((lookUpTable[DACChannel[channelNb].index] * (DACChannel[channelNb].amplitude)) / 10) + centreAdjust;
 }
 
 uint16_t AWG_DAC_Get(uint8_t channelNb)
@@ -73,25 +72,6 @@ uint16_t AWG_DAC_Get(uint8_t channelNb)
   }
 
 }
-
-
-/*
-//value = value from lookuptable, adjust = converted amplitude, amplitude = original amplitude
-uint16_t VoltageAdjust(uint16_t value, uint16_t adjust, uint16_t amplitude)
-{
-  uint16_t centreAdjust;
-
-
-  centreAdjust = 32767 - 0; //- original amplitude; + offset
-
-  (value*adjust)/10 + centreAdjust;
-
-  DACChannel[channelNb].index = (DACChannel[channelNb].index + DACChannel[channelNb].frequency) % 10000;
-
-
-  return value;
-}
-*/
 
 
 //Can be used for both offset and amplitude
@@ -149,7 +129,7 @@ uint16_t Average(uint16_t index, const uint16_t waveform[])
     value1 = waveform[0];
   }
 
-  difference = num2 - num1;
+  difference = value2 - value1;
 
   addition = difference*(index%10)/10;
 

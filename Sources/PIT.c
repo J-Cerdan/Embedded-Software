@@ -23,6 +23,7 @@
 #include "MK70F12.h"
 #include "OS.h"
 #include "ThreadManage.h"
+#include "AWG.h"
 
 //Private global variable to contain module clock
 static uint32_t ModuleClk;
@@ -35,8 +36,15 @@ static void* CallBackArgument;
 //semaphore for PITThread()
 OS_ECB* CntDone;
 
-OS_ECB* Ch00Enable;
-OS_ECB* Ch01Enable;
+OS_ECB* Ch00Processing;
+OS_ECB* Ch01Processing;
+
+uint16_t Ch00Value;
+uint16_t Ch01Value;
+
+uint8_t DACCHANNEL00 = 0;
+uint8_t DACCHANNEL01 = 1;
+
 
 static void PITThread(void* arg);
 
@@ -67,8 +75,8 @@ bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userA
 
   //create semaphore
   CntDone = OS_SemaphoreCreate(0);
-  Ch00Enable = OS_SemaphoreCreate(0);
-  Ch01Enable = OS_SemaphoreCreate(0);
+  Ch00Processing = OS_SemaphoreCreate(0);
+  Ch01Processing = OS_SemaphoreCreate(0);
 
   return TRUE;
 
@@ -129,12 +137,25 @@ void __attribute__ ((interrupt)) PIT_ISR(void)
 
   if (EnableCh00)
   {
-    (void)OS_SemaphoreSignal(Ch00Enable);
+    (void)OS_SemaphoreSignal(Ch00Processing);
+
+    if (DACChannel[DACCHANNEL00].active)
+    {
+      Analog_Put(Ch00Value, DACCHANNEL00);
+    }
+
     EnableCh00 = FALSE;
   }
   else
   {
-    (void)OS_SemaphoreSignal(Ch01Enable);
+
+    (void)OS_SemaphoreSignal(Ch01Processing);
+
+    if (DACChannel[DACCHANNEL01].active)
+    {
+      Analog_Put(Ch01Value, DACCHANNEL01);
+    }
+
     EnableCh00 = TRUE;
   }
 

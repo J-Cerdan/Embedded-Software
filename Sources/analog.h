@@ -41,6 +41,9 @@ typedef struct
 
 extern TAnalogInput Analog_Input[ANALOG_NB_INPUTS];
 
+
+bool Analog_Put(const uint16_t data, const uint8_t channelNb);
+
 /*! @brief Sets up the ADC before first use.
  *
  *  @param moduleClock The module clock rate in Hz.

@@ -20,8 +20,15 @@
 #include "OS.h"
 
 extern OS_ECB* CntDone;
-extern OS_ECB* Ch00Enable;
-extern OS_ECB* Ch01Enable;
+extern OS_ECB* Ch00Processing;
+extern OS_ECB* Ch01Processing;
+
+extern uint8_t DACCHANNEL00;
+extern uint8_t DACCHANNEL01;
+
+extern uint16_t Ch00Value;
+extern uint16_t Ch01Value;
+
 
 /*! @brief Sets up the PIT before first use.
  *

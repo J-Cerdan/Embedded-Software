@@ -64,6 +64,16 @@
 #define PACKET_SET_TIME 0x0C
 #define PACKET_PROTOCOL_MODE 0x0A
 #define PACKET_ANALOG_INPUT_VALUE 0x50
+#define PACKET_WAVE 0x60
+
+#define STATUS 0x00
+#define WAVEFORM 0x01
+#define FREQUENCY 0x02
+#define AMPLITUDE 0x03
+#define OFFSET 0x04
+#define ALL_WAVEFORMS_ON 0x05
+#define ALL_WAVEFORMS_OFF 0x06
+#define ACTIVE_CHANNEL 0x07
 
 
 //global private constant to store the baudRate
@@ -82,6 +92,9 @@ static bool synchronous = FALSE;
 static const uint8_t ADCCHANNEL = 0;
 //RTC Time
 static uint8_t Hours = 0, Minutes = 0, Seconds = 0;
+//Edit Channel Selection
+static uint8_t EditChannel = 0;
+
 //PacketThread and InitThread stack
 OS_THREAD_STACK(PacketStack, THREAD_STACK_SIZE);
 OS_THREAD_STACK(InitStack, THREAD_STACK_SIZE);
@@ -89,9 +102,6 @@ OS_THREAD_STACK(PITStack, THREAD_STACK_SIZE);
 OS_THREAD_STACK(Ch00Stack, THREAD_STACK_SIZE);
 OS_THREAD_STACK(Ch01Stack, THREAD_STACK_SIZE);
 
-
-static const uint8_t DACCHANNEL00 = 0;
-static const uint8_t DACCHANNEL01 = 1;
 
 
 /*! @brief Handles the "Program" request packet
@@ -226,6 +236,131 @@ static bool HandleProtocolPacket(bool specialPacket)
   return FALSE;
 }
 
+static bool SetStatus(uint8_t outputChannel, uint8_t enable)
+{
+  DACChannel[outputChannel].active = enable;
+  return TRUE;
+}
+
+static bool SetWaveform(uint8_t selectedWaveform)
+{
+  DACChannel[EditChannel].waveform = selectedWaveform;
+  return TRUE;
+}
+
+static bool SetFrequency(uint8_t LSB, uint8_t MSB)
+{
+  uint16union_t recievedfrequency;
+  recievedfrequency.s.Lo = LSB;
+  recievedfrequency.s.Hi = MSB;
+
+  DACChannel[EditChannel].frequency = FrequencyConversion(recievedfrequency.l);
+
+  return TRUE;
+}
+
+static bool SetAmplitude(uint8_t LSB, uint8_t MSB)
+{
+  uint16union_t recievedamplitude;
+  recievedamplitude.s.Lo = LSB;
+  recievedamplitude.s.Hi = MSB;
+
+  DACChannel[EditChannel].amplitude = AmplitudeOffsetConversion(recievedamplitude.l);
+
+  return TRUE;
+}
+
+static bool SetOffset(uint8_t LSB, uint8_t MSB)
+{
+  uint16union_t recievedoffset;
+  recievedoffset.s.Lo = LSB;
+  recievedoffset.s.Hi = MSB;
+
+  DACChannel[EditChannel].offset = AmplitudeOffsetConversion(recievedoffset.l);
+
+  return TRUE;
+}
+
+static bool SetAllWaveformStatus(bool enable)
+{
+  for (uint8_t i = 0; i < NB_DAC_CHANNELS; i++)
+    DACChannel[i].active = enable;
+
+  return TRUE;
+}
+
+static bool SetActive(uint8_t outputChannel)
+{
+  EditChannel = outputChannel;
+  return TRUE;
+}
+
+static bool HandleWavePacket()
+{
+  switch (Packet_Parameter1)
+  {
+    case (STATUS):
+      if (Packet_Parameter2 < 2 && Packet_Parameter3 < 2)
+      {
+        SetStatus(Packet_Parameter2, Packet_Parameter3);
+	return TRUE;
+      }
+
+      break;
+
+    case (WAVEFORM):
+      if (Packet_Parameter2 < 3)
+	{
+	  SetWaveform(Packet_Parameter2);
+	  return TRUE;
+	}
+
+      break;
+
+    case (FREQUENCY):
+      SetFrequency(Packet_Parameter2, Packet_Parameter3);
+      return TRUE;
+
+      break;
+
+    case (AMPLITUDE):
+      SetAmplitude(Packet_Parameter2, Packet_Parameter3);
+      return TRUE;
+
+      break;
+
+    case (OFFSET):
+      SetOffset(Packet_Parameter2, Packet_Parameter3);
+      return TRUE;
+
+      break;
+
+    case (ALL_WAVEFORMS_ON):
+      SetAllWaveformStatus(TRUE);
+      return TRUE;
+
+      break;
+
+    case (ALL_WAVEFORMS_OFF):
+      SetAllWaveformStatus(FALSE);
+      return TRUE;
+
+      break;
+
+    case (ACTIVE_CHANNEL):
+      if (Packet_Parameter2 < 2)
+	{
+	  SetActive(Packet_Parameter2);
+	  return TRUE;
+	}
+
+      break;
+  }
+
+  return FALSE;
+
+}
+
 
 /*! @brief Handles the "Special" request packet
  *
@@ -300,6 +435,10 @@ static void HandlePacket(void)
 
     case (PACKET_PROTOCOL_MODE):
       success = HandleProtocolPacket(FALSE);
+      break;
+
+    case (PACKET_WAVE):
+      success = HandleWavePacket(FALSE);
       break;
   }
 
@@ -446,7 +585,7 @@ static void InitThread(void* arg)
 
     if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init() && Analog_Init(CPU_BUS_CLK_HZ)
 	&&  RTC_Init(RTCCallback, NULL) && PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL) &&
-	FTM_Init())
+	FTM_Init() && AWG_Init())
       LEDs_On(LED_ORANGE);
 
     //setup the PIT and call for Channel 0 to be set up
@@ -473,7 +612,7 @@ static void Ch00Thread(void* arg)
   for (;;)
   {
     //check if channel active
-    (void)OS_SemaphoreWait(Ch00Enable, 0);
+    (void)OS_SemaphoreWait(Ch00Processing, 0);
 
     /*
     static uint16_t Ch00index = 0;
@@ -481,12 +620,22 @@ static void Ch00Thread(void* arg)
     Analog_Put(VoltageAdjust(WAVEFORM_SINEWAVE[Ch00index], 7converted voltage input function, 22936voltage input), DACCHANNEL00);
 
     Ch00index = (Ch00index + 10converted frequency function) % 10000;
-    */
+    ----
 
     if (DACChannel[DACCHANNEL00].active)
     {
       Analog_Put(AWG_DAC_Get(DACCHANNEL00), DACCHANNEL00);
     }
+    */
+    if (AWG_DAC_Get(DACCHANNEL00) <= 65535)
+    {
+      Ch00Value = AWG_DAC_Get(DACCHANNEL00);
+    }
+    else
+    {
+      Ch00Value = 0xFFFF;
+    }
+
   }
 }
 
@@ -495,7 +644,7 @@ static void Ch01Thread(void* arg)
   for (;;)
   {
     //check if channel active
-    (void)OS_SemaphoreWait(Ch01Enable, 0);
+    (void)OS_SemaphoreWait(Ch01Processing, 0);
 
     /*
     static uint16_t Ch01index = 0;
@@ -503,10 +652,20 @@ static void Ch01Thread(void* arg)
     Analog_Put(WAVEFORM_SAWTOOTHWAVE[Ch01index], DACCHANNEL01);
 
     Ch01index = (Ch01index + 10) % 10000;
-    */
+    ------
     if (DACChannel[DACCHANNEL01].active)
     {
       Analog_Put(AWG_DAC_Get(DACCHANNEL01), DACCHANNEL01);
+    }
+    */
+    //
+    if (AWG_DAC_Get(DACCHANNEL01) <= 65535)
+    {
+      Ch01Value = AWG_DAC_Get(DACCHANNEL01);
+    }
+    else
+    {
+      Ch01Value = 0xFFFF;
     }
 
   }
@@ -527,7 +686,7 @@ int main(void)
   PE_low_level_init();
   /*** End of Processor Expert internal initialization.                    ***/
 
-  AWG_Init();
+  //AWG_Init();
 
   OS_Init(CPU_CORE_CLK_HZ, false);
 
