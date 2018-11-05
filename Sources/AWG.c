@@ -29,8 +29,8 @@ bool AWG_Init(void)
 {
   for (uint8_t i = 0; i < AWG_NB_CHANNELS; i++)
   {
-    AWG_DAC_CHANNELS[i].waveForm = SINE_FUNCTION;  	//default wave is sine
-    AWG_DAC_CHANNELS[i].frequency = 559; 		//default frequency is 1Hz
+    AWG_DAC_CHANNELS[i].waveform = SINE_FUNCTION;  	//default wave is sine
+    AWG_DAC_CHANNELS[i].frequency = 600; 		//default frequency is 1Hz
     AWG_DAC_CHANNELS[i].amplitude = 10; 		//default amplitude is 1 V
     AWG_DAC_CHANNELS[i].offset = 0; 			//default offset is 0
     AWG_DAC_CHANNELS[i].index = 0;		//index begins at 0 always
@@ -67,7 +67,7 @@ uint16_t AWG_SampleGet(uint8_t channelNb)
 {
   if (channelNb == 0 || channelNb == 1)
   {
-    switch (AWG_DAC_CHANNELS[channelNb].waveForm)
+    switch (AWG_DAC_CHANNELS[channelNb].waveform)
     {
       case (SINE_FUNCTION):
 	return ProcessSample(FUNCTIONS_SINEWAVE, channelNb);

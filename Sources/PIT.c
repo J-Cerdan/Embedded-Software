@@ -37,7 +37,7 @@ OS_ECB* DACChannelZero;
 OS_ECB* DACChannelOne;
 
 
-static void PITThread(void* arg);
+//static void PITThread(void* arg);
 
 
 bool PIT_Init(const uint32_t moduleClk, void (*userFunction)(void*), void* userArguments)
@@ -118,8 +118,9 @@ void __attribute__ ((interrupt)) PIT_ISR(void)
   //Write 1 to clear interrupt flag
   PIT_TFLG0 |= PIT_TFLG_TIF_MASK;
 
-  //if (CallBack)
-    //(*CallBack) (CallBackArgument); //calls the user call back function
+  CallBackArgument = &channelZero;
+  if (CallBack)
+   (*CallBack) (CallBackArgument); //calls the user call back function
 
   if (channelZero)
   {

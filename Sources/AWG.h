@@ -22,6 +22,7 @@
 
 // Maximum number of channels
 #define AWG_NB_CHANNELS 2
+#define AWG_MAX_FREQUENCY 25600
 
 typedef enum
 {
@@ -33,7 +34,7 @@ typedef enum
 
 typedef struct
 {
-  FunctionWaveForm  waveForm;		/*!< The wave form for this channel to display. */
+  FunctionWaveForm  waveform;		/*!< The wave form for this channel to display. */
   uint16_t frequency;                  	/*!< The frequency of the wave multiplied by 10. */
   uint8_t amplitude;    		/*!< the amplitude of the wave multiplied by 10. */
   uint8_t offset;                       /*!< The offset of the wave when displayed */

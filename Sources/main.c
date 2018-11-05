@@ -83,6 +83,10 @@ static bool synchronous = FALSE;
 static const uint8_t ADCCHANNEL = 0;
 //RTC Time
 static uint8_t Hours = 0, Minutes = 0, Seconds = 0;
+//to store the processed sample to send to the DAC
+static uint16_t DACChanelZeroSample, DACChanelOneSample;
+//checks which channel is active to edit
+static bool ChannelZeroEdit = TRUE;
 //PacketThread and InitThread stack
 OS_THREAD_STACK(PacketStack, THREAD_STACK_SIZE);
 OS_THREAD_STACK(InitStack, THREAD_STACK_SIZE);
@@ -253,47 +257,107 @@ static bool HandleSpecialPacket(bool startUp)
  return FALSE;
 }
 
-/*static HandleAWGPacket(void)
+bool HandleStatus(void)
+{
+  if ((Packet_Parameter2 == 0 || Packet_Parameter2 == 1) && (Packet_Parameter3 == 0 || Packet_Parameter3 == 1))
+  {
+    AWG_DAC_CHANNELS[Packet_Parameter2].active = (bool) Packet_Parameter3;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+bool HandleWaveForm(void)
+{
+  if ((Packet_Parameter2 >=0 && Packet_Parameter2 <= 5) && Packet_Parameter3 == 0)
+  {
+    if (ChannelZeroEdit)
+    {
+      AWG_DAC_CHANNELS[0].waveform = Packet_Parameter2;
+      return TRUE;
+    }
+    else
+    {
+      AWG_DAC_CHANNELS[0].waveform = Packet_Parameter2;
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+bool HandleFrequency(void)
+{
+  uint16union_t frequency;
+  if (ChannelZeroEdit)
+  {
+    frequency.s.Hi = Packet_Parameter3;
+    frequency.s.Lo = Packet_Parameter2;
+    if (frequency.l > AWG_MAX_FREQUENCY)
+    {
+      return FALSE;
+    }
+    else
+    {
+	AWG_UpdateFrequency(0, frequency.l);
+	return TRUE;
+    }
+  }
+  else
+  {
+    frequency.s.Hi = Packet_Parameter3;
+    frequency.s.Lo = Packet_Parameter2;
+    if (frequency.l > AWG_MAX_FREQUENCY)
+    {
+      return FALSE;
+    }
+    else
+    {
+      AWG_UpdateFrequency(0, frequency.l);
+      return TRUE;
+    }
+  }
+
+}
+
+bool HandleAWGPacket(void)
 {
   switch (Packet_Parameter1)
     {
       case (0x00):
-        success = HandleStatus();
+        return HandleStatus();
         break;
 
-      case (PACKET_PROGRAM_BYTE):
-        success = HandleProgramPacket();
+      case (0x01):
+	return HandleWaveForm();
         break;
 
-      case (PACKET_READ_BYTE):
-        success = HandleReadPacket();
+      case (0x02):
+	return HandleFrequency();
         break;
 
-      case (PACKET_VERSION):
-        success = HandleVersionPacket(FALSE);
+      case (0x03):
+	return HandleVersionPacket(FALSE);
         break;
 
-      case (PACKET_NUMBER):
-        success = HandleNumberPacket(FALSE);
+      case (0x04):
+	return HandleNumberPacket(FALSE);
         break;
 
-      case (PACKET_TOWER_MODE):
-        success = HandleModePacket(FALSE);
+      case (0x05):
+	return HandleModePacket(FALSE);
         break;
 
-      case (PACKET_SET_TIME):
-        success = HandleTimePacket();
+      case (0x06):
+	return HandleTimePacket();
         break;
 
-      case (PACKET_PROTOCOL_MODE):
-        success = HandleProtocolPacket(FALSE);
-        break;
-
-      case (PACKET_AWG_COMMANDS):
-        success = HandleAWGPacket();
+      case (0x07):
+	return HandleProtocolPacket(FALSE);
         break;
     }
-}*/
+  return FALSE;
+}
 
 /*! @brief Handles the packets that comes from the PC and determines what to do
  *
@@ -386,12 +450,10 @@ static void TowerNumberModeInit(void)
  */
 static void PITCallback(void* arg)
 {
-  static uint16_t index = 0;
-  uint16_t overflow = 0;
-  Analog_Put(ADCCHANNEL, FUNCTIONS_SINEWAVE[index]);
-  //index += 10;
-
-  index = (index + 15) % 10000;
+  if (*(bool*)arg)
+    Analog_Put(1, DACChanelOneSample);
+  else
+    Analog_Put(0, DACChanelZeroSample);
 
 }
 
@@ -444,7 +506,7 @@ static void DACChannelZeroThread(void* arg)
 
     if (AWG_DAC_CHANNELS[0].active) //check to see if channel is active
     {
-      Analog_Put(0, AWG_SampleGet(0));
+      DACChanelZeroSample = AWG_SampleGet(0);
     }
   }
 }
@@ -457,7 +519,7 @@ static void DACChannelOneThread(void* arg)
 
       if (AWG_DAC_CHANNELS[1].active) //check to see if channel is active
       {
-	Analog_Put(1, AWG_SampleGet(1));
+	  DACChanelOneSample = AWG_SampleGet(1);
       }
 
     }
@@ -518,7 +580,7 @@ static void InitThread(void* arg)
     LEDs_Init();
 
     if (Packet_Init(BaudRate, CPU_BUS_CLK_HZ) && Flash_Init() && Analog_Init(CPU_BUS_CLK_HZ)
-	&&  RTC_Init(RTCCallback, NULL) && PIT_Init(CPU_BUS_CLK_HZ, PITCallback, NULL) &&
+	&&  RTC_Init(RTCCallback, NULL) && PIT_Init(CPU_BUS_CLK_HZ, PITCallback, arg) &&
 	FTM_Init() && AWG_Init())
       LEDs_On(LED_ORANGE);
 
