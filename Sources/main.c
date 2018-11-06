@@ -65,6 +65,7 @@
 #define PACKET_PROTOCOL_MODE 0x0A
 #define PACKET_ANALOG_INPUT_VALUE 0x50
 #define PACKET_AWG_COMMANDS 0x60
+#define PACKET_ARBITRARY 0x61
 
 
 //global private constant to store the baudRate
@@ -84,7 +85,7 @@ static const uint8_t ADCCHANNEL = 0;
 //RTC Time
 static uint8_t Hours = 0, Minutes = 0, Seconds = 0;
 //to store the processed sample to send to the DAC
-static uint16_t DACChanelZeroSample = 0, DACChanelOneSample = 0;
+static uint16_t DACChanelZeroSample = 32767, DACChanelOneSample = 32767;
 //checks which channel is active to edit
 static bool ChannelZeroEdit = TRUE;
 //PacketThread and InitThread stack
@@ -261,7 +262,7 @@ static bool HandleStatus(void)
 {
   if ((Packet_Parameter2 == 0 || Packet_Parameter2 == 1) && (Packet_Parameter3 == 0 || Packet_Parameter3 == 1))
   {
-    AWG_DAC_CHANNELS[Packet_Parameter2].active = (bool) Packet_Parameter3;
+    AWG_DAC_Channels[Packet_Parameter2].active = (bool) Packet_Parameter3;
     return TRUE;
   }
 
@@ -274,12 +275,12 @@ static bool HandleWaveForm(void)
   {
     if (ChannelZeroEdit)
     {
-      AWG_DAC_CHANNELS[0].waveform = Packet_Parameter2;
+      AWG_DAC_Channels[0].waveform = Packet_Parameter2;
       return TRUE;
     }
     else
     {
-      AWG_DAC_CHANNELS[1].waveform = Packet_Parameter2;
+      AWG_DAC_Channels[1].waveform = Packet_Parameter2;
       return TRUE;
     }
   }
@@ -386,8 +387,8 @@ static bool HandleAllWaveFormsOn(void)
 {
   if (Packet_Parameter2 == 0 && Packet_Parameter3 == 0)
   {
-    AWG_DAC_CHANNELS[0].active = TRUE;
-    AWG_DAC_CHANNELS[1].active = TRUE;
+    AWG_DAC_Channels[0].active = TRUE;
+    AWG_DAC_Channels[1].active = TRUE;
     return TRUE;
   }
   return FALSE;
@@ -397,14 +398,14 @@ static bool HandleAllWaveFormsOff(void)
 {
   if (Packet_Parameter2 == 0 && Packet_Parameter3 == 0)
   {
-    AWG_DAC_CHANNELS[0].active = FALSE;
-    AWG_DAC_CHANNELS[1].active = FALSE;
+    AWG_DAC_Channels[0].active = FALSE;
+    AWG_DAC_Channels[1].active = FALSE;
     return TRUE;
   }
   return FALSE;
 }
 
-static bool HandleSetActiveChannel()
+static bool HandleSetActiveChannel(void)
 {
   if ((Packet_Parameter2 == 0 || Packet_Parameter2 == 1) && Packet_Parameter3 == 0)
   {
@@ -412,6 +413,34 @@ static bool HandleSetActiveChannel()
     return TRUE;
   }
   return FALSE;
+}
+
+static bool HandleArbPacket(void)
+{
+  static uint16_t channel;
+  int16union_t sample;
+  if (Packet_Parameter1 <= 1)
+  {
+    sample.s.Lo = Packet_Parameter2;
+    sample.s.Hi = Packet_Parameter3;
+    channel = Packet_Parameter1;
+    AWG_ResetAbitraryWave(channel);
+    return AWG_UploadAbitraryWave(sample.l, channel);
+  }
+
+  if (Packet_Parameter1 == 2)
+  {
+    sample.s.Lo = Packet_Parameter2;
+    sample.s.Hi = Packet_Parameter3;
+    return AWG_UploadAbitraryWave(sample.l, channel);
+  }
+
+  if(Packet_Parameter1 == 255)
+  {
+    sample.s.Lo = Packet_Parameter2;
+    sample.s.Hi = Packet_Parameter3;
+    return AWG_UpdateArbitraryIndexAdder(channel);
+  }
 }
 
 static bool HandleAWGPacket(void)
@@ -500,6 +529,10 @@ static void HandlePacket(void)
 
     case (PACKET_AWG_COMMANDS):
       success = HandleAWGPacket();
+      break;
+
+    case (PACKET_ARBITRARY):
+      success = HandleArbPacket();
       break;
   }
 
@@ -598,7 +631,7 @@ static void DACChannelZeroThread(void* arg)
   {
     (void)OS_SemaphoreWait(DACChannelZero, 0);
 
-    if (AWG_DAC_CHANNELS[0].active) //check to see if channel is active
+    if (AWG_DAC_Channels[0].active) //check to see if channel is active
     {
       DACChanelZeroSample = AWG_SampleGet(0);
     }
@@ -611,7 +644,7 @@ static void DACChannelOneThread(void* arg)
     {
       (void)OS_SemaphoreWait(DACChannelOne, 0);
 
-      if (AWG_DAC_CHANNELS[1].active) //check to see if channel is active
+      if (AWG_DAC_Channels[1].active) //check to see if channel is active
       {
 	  DACChanelOneSample = AWG_SampleGet(1);
       }

@@ -19,7 +19,7 @@
 #include "PE_Types.h"
 #include "functions.h"
 
-TAWGDacChannel AWG_DAC_CHANNELS[AWG_NB_CHANNELS];
+TAWGDacChannel AWG_DAC_Channels[AWG_NB_CHANNELS];
 
 /*! @brief Sets up the DAC Channels before first use.
  *
@@ -29,20 +29,73 @@ bool AWG_Init(void)
 {
   for (uint8_t i = 0; i < AWG_NB_CHANNELS; i++)
   {
-    AWG_DAC_CHANNELS[i].waveform = SINE_FUNCTION;  	//default wave is sine
-    AWG_DAC_CHANNELS[i].frequency = 10; 		//default frequency is 1Hz
-    AWG_DAC_CHANNELS[i].amplitude = 10; 		//default amplitude is 1 V
-    AWG_DAC_CHANNELS[i].offset = 0; 			//default offset is 0
-    AWG_DAC_CHANNELS[i].index = 0;			//index begins at 0 always
-    AWG_DAC_CHANNELS[i].active = FALSE;			//remains inactive till PC sends signal
+    AWG_DAC_Channels[i].waveform = SINE_FUNCTION;  	//default wave is sine
+    AWG_DAC_Channels[i].frequency = 10; 		//default frequency is 1Hz
+    AWG_DAC_Channels[i].amplitude = 10; 		//default amplitude is 1 V
+    AWG_DAC_Channels[i].offset = 0; 			//default offset is 0
+    AWG_DAC_Channels[i].index = 0;			//index begins at 0 always
+    AWG_DAC_Channels[i].sizeOfArbitraryWave = 0;	//size of arbitrary array is 0 until wave is uploaded
+    AWG_DAC_Channels[i].arbitraryIndexAdder = 0;	//index is 0 until arbitrary wave is uploaded
+    AWG_DAC_Channels[i].active = FALSE;			//remains inactive till PC sends signal
   }
 
   return TRUE;
 }
 
+void AWG_ResetAbitraryWave(uint8_t channelNb)
+{
+  AWG_DAC_Channels[channelNb].sizeOfArbitraryWave = 0;
+}
+
+bool AWG_UploadAbitraryWave(int16_t sample, uint8_t channelNb)
+{
+  AWG_DAC_Channels[channelNb].arbitraryWave[(AWG_DAC_Channels[channelNb].sizeOfArbitraryWave)] = (sample + 32767);
+  AWG_DAC_Channels[channelNb].sizeOfArbitraryWave++;
+  return TRUE;
+}
+
+bool AWG_UpdateArbitraryIndexAdder(uint8_t channelNb)
+{
+  uint16_t samples = 100000 / AWG_DAC_Channels[channelNb].frequency;
+
+  if (((AWG_DAC_Channels[channelNb].sizeOfArbitraryWave * 100) % samples) > (samples / 2))
+  {
+    (AWG_DAC_Channels[channelNb].arbitraryIndexAdder = (AWG_DAC_Channels[channelNb].sizeOfArbitraryWave * 100) / samples) + 1;
+    AWG_DAC_Channels[channelNb].index = 0;
+    return TRUE;
+  }
+  else
+  {
+    (AWG_DAC_Channels[channelNb].arbitraryIndexAdder = (AWG_DAC_Channels[channelNb].sizeOfArbitraryWave * 100) / samples);
+    AWG_DAC_Channels[channelNb].index = 0;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+uint16_t ApplyAmplitude(uint16_t value, uint8_t channelNb)
+{
+  uint16_t sample = value;
+  if (sample > 32767)
+  {
+    sample -= 32767;
+    sample /= 100;
+    sample *= AWG_DAC_Channels[channelNb].amplitude;
+    return sample + 32767;
+  }
+  else
+  {
+    sample = 32767 - value;
+    sample /= 100;
+    sample *= AWG_DAC_Channels[channelNb].amplitude;
+    return 32767 - sample;
+  }
+}
+
 uint16_t ApplyOffset(uint16_t value, uint8_t channelNb)
 {
-  int64_t sample = value + AWG_DAC_CHANNELS[channelNb].offset;
+  int64_t sample = value + AWG_DAC_Channels[channelNb].offset;
 
   if (sample > 65534)
     return 65534;
@@ -53,35 +106,80 @@ uint16_t ApplyOffset(uint16_t value, uint8_t channelNb)
 
 }
 
+
 uint16_t ProcessSample(const uint16 functionLookUpTable[], uint8_t channelNb)
 {
-  uint16_t value = functionLookUpTable[AWG_DAC_CHANNELS[channelNb].index];
-  if (value > 32767)
+  uint16_t value = functionLookUpTable[AWG_DAC_Channels[channelNb].index];
+
+  value = ApplyAmplitude(value, channelNb);
+
+  value = ApplyOffset(value, channelNb);
+  AWG_DAC_Channels[channelNb].index = (AWG_DAC_Channels[channelNb].index + AWG_DAC_Channels[channelNb].frequency) % 10000; //maintain the index count
+
+  return value;
+}
+
+uint16_t ProcessAbitrarySample(const uint16 functionLookUpTable[], uint8_t channelNb)
+{
+  uint16_t value, moddedValue, sample1, sample2;
+  bool sample1Larger;
+  if ((AWG_DAC_Channels[channelNb].index % 10) == 0)
   {
-    value -= 32767;
-    value /= 100;
-    value *= AWG_DAC_CHANNELS[channelNb].amplitude;
-    value += 32767;
+    uint16_t value = functionLookUpTable[AWG_DAC_Channels[channelNb].index / 10];
+
+    value = ApplyAmplitude(value, channelNb);
+
+    value = ApplyOffset(value, channelNb);
+    AWG_DAC_Channels[channelNb].index = (AWG_DAC_Channels[channelNb].index + AWG_DAC_Channels[channelNb].arbitraryIndexAdder) % (AWG_DAC_Channels[channelNb].sizeOfArbitraryWave*10); //maintain the index count
+
+    return value;
   }
   else
   {
-    value = 32767 - value;
-    value /= 100;
-    value *= AWG_DAC_CHANNELS[channelNb].amplitude;
-    value = 32767 - value;
+    sample1 = functionLookUpTable[AWG_DAC_Channels[channelNb].index / 10];
+    sample2 = functionLookUpTable[(AWG_DAC_Channels[channelNb].index / 10) + 1];
+
+    if (sample1 > sample2)
+    {
+      value = sample1 - sample2;
+      sample1Larger = TRUE;
+    }
+    else
+    {
+      value = sample2 - sample1;
+      sample1Larger = FALSE;
+    }
+
+    value = (value * 10) * (AWG_DAC_Channels[channelNb].index % 10);
+    if ((value % 100) >= 50)
+    {
+      if(sample1Larger)
+	value = sample1 - ((value / 100) + 1);
+      else
+	value = sample1 + ((value / 100) + 1);
+    }
+    else
+    {
+      if(sample1Larger)
+	value = sample1 - ((value / 100) + 1);
+      else
+	value = sample1 + ((value / 100) + 1);
+    }
+
+    value = ApplyAmplitude(value, channelNb);
+
+    value = ApplyOffset(value, channelNb);
+    AWG_DAC_Channels[channelNb].index = (AWG_DAC_Channels[channelNb].index + AWG_DAC_Channels[channelNb].arbitraryIndexAdder) % (AWG_DAC_Channels[channelNb].sizeOfArbitraryWave * 10); //maintain the index count
+
+    return value;
   }
-
-  value = ApplyOffset(value, channelNb);
-  AWG_DAC_CHANNELS[channelNb].index = (AWG_DAC_CHANNELS[channelNb].index + AWG_DAC_CHANNELS[channelNb].frequency) % 10000; //maintain the index count
-
-  return value;
 }
 
 uint16_t AWG_SampleGet(uint8_t channelNb)
 {
   if (channelNb == 0 || channelNb == 1)
   {
-    switch (AWG_DAC_CHANNELS[channelNb].waveform)
+    switch (AWG_DAC_Channels[channelNb].waveform)
     {
       case (SINE_FUNCTION):
 	return ProcessSample(FUNCTIONS_SINEWAVE, channelNb);
@@ -98,6 +196,14 @@ uint16_t AWG_SampleGet(uint8_t channelNb)
       case (TRIANGLE_FUNCTION):
 	return ProcessSample(FUNCTIONS_TRIANGLEWAVE, channelNb);
 	break;
+
+      case (NOISE):
+	return ProcessSample(FUNCTIONS_TRIANGLEWAVE, channelNb);
+	break;
+
+      case (ARBITRARY_FUNCTION):
+	return ProcessAbitrarySample(AWG_DAC_Channels[channelNb].arbitraryWave, channelNb);
+	break;
     }
   }
 }
@@ -113,7 +219,10 @@ bool AWG_UpdateFrequency(uint8_t channelNb, uint16_t frequency)
   else
     value /= 256;
 
-  AWG_DAC_CHANNELS[channelNb].frequency = (uint16_t)value;
+  AWG_DAC_Channels[channelNb].frequency = (uint16_t)value;
+
+  if (AWG_DAC_Channels[channelNb].waveform == ARBITRARY_FUNCTION)
+    AWG_UpdateArbitraryIndexAdder(channelNb);
 
   return TRUE;
 }
@@ -131,7 +240,7 @@ bool AWG_UpdateAmplitude(uint8_t channelNb, uint16_t amplitude)
     else
       value /= 3276;
 
-    AWG_DAC_CHANNELS[channelNb].amplitude = (uint16_t)value;
+    AWG_DAC_Channels[channelNb].amplitude = (uint16_t)value;
 
     return TRUE;
   }
@@ -142,7 +251,7 @@ bool AWG_UpdateOffset(uint8_t channelNb, uint16_t offset)
 {
   if (channelNb == 0 || channelNb == 1)
   {
-    AWG_DAC_CHANNELS[channelNb].offset = (uint16_t)offset;
+    AWG_DAC_Channels[channelNb].offset = (uint16_t)offset;
   }
 }
 

@@ -25,26 +25,32 @@
 #define AWG_MAX_FREQUENCY 25600
 #define AWG_MAX_AMPLITUDE 32767
 #define AWG_MIN_OFFSET -32767
+#define ARB_WAVE_SIZE 1000
 
 typedef enum
 {
   SINE_FUNCTION = 0,
   SQUARE_FUNCTION = 1,
   TRIANGLE_FUNCTION = 2,
-  SAWTOOTH_FUNCTION = 3
+  SAWTOOTH_FUNCTION = 3,
+  NOISE = 4,
+  ARBITRARY_FUNCTION = 5
 } FunctionWaveForm;
 
 typedef struct
 {
-  FunctionWaveForm  waveform;		/*!< The wave form for this channel to display. */
-  uint16_t frequency;                  	/*!< The frequency of the wave multiplied by 10. */
-  uint8_t amplitude;    		/*!< the amplitude of the wave multiplied by 10. */
-  int16_t offset;                       /*!< The offset of the wave when displayed */
-  uint16_t index; 			/*!< The index */
-  bool active;
+  FunctionWaveForm  waveform;			/*!< The wave form for this channel to display. */
+  uint16_t frequency;                  		/*!< The frequency of the wave multiplied by 10. */
+  uint8_t amplitude;    			/*!< the amplitude of the wave multiplied by 10. */
+  int16_t offset;                      		/*!< The offset of the wave when displayed */
+  uint16_t index; 				/*!< The index*/
+  uint16_t arbitraryWave[ARB_WAVE_SIZE];	/*!< The samples for arbitrary wave form */
+  uint16_t sizeOfArbitraryWave;			/*!< number of samples in the arbitrary wave form array */
+  uint16_t arbitraryIndexAdder;			/*!< The amount the index must increment for arbitrary wave */
+  bool active;					/*!< Indicates if the channel is active or not */
 } TAWGDacChannel;
 
-extern TAWGDacChannel AWG_DAC_CHANNELS[AWG_NB_CHANNELS];
+extern TAWGDacChannel AWG_DAC_Channels[AWG_NB_CHANNELS];
 
 /*! @brief Sets up the DAC Channels before first use.
  *
@@ -67,6 +73,11 @@ bool AWG_UpdateAmplitude(uint8_t channelNb, uint16_t amplitude);
 
 bool AWG_UpdateOffset(uint8_t channelNb, uint16_t offset);
 
+bool AWG_UpdateArbitraryIndexAdder(uint8_t channelNb);
+
+bool AWG_UploadAbitraryWave(int16_t sample, uint8_t channelNb);
+
+void AWG_ResetAbitraryWave(uint8_t channelNb);
 
 #endif
 
