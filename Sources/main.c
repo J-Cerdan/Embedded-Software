@@ -66,6 +66,9 @@
 #define PACKET_ANALOG_INPUT_VALUE 0x50
 #define PACKET_AWG_COMMANDS 0x60
 #define PACKET_ARBITRARY 0x61
+#define PACKET_HARMONIC_AMPLITUDE 0x62
+#define PACKET_HARMONIC_PHASE 0X63
+#define PACKET_ARBITRARY_STATUS 0x64
 
 
 //global private constant to store the baudRate
@@ -485,6 +488,75 @@ static bool HandleArbPacket(void)
   }
 }
 
+/*! @brief Handles the "arbitrary harmonic amplitude" request packet for AWG to upload or update a amplitude
+ *
+ *  @param None.
+ *  @return bool - TRUE if the amplitude is updated
+ */
+static bool HandleHarmonicAmplitude(void)
+{
+  uint16union_t amplitude;
+  amplitude.s.Hi = Packet_Parameter3;
+  amplitude.s.Lo = Packet_Parameter2;
+  if (ChannelZeroEdit)
+  {
+    if (amplitude.l > AWG_MAX_AMPLITUDE)
+    {
+      return FALSE;
+    }
+    else
+    {
+      AWG_UploadHarmonicAmplitude(0, Packet_Parameter1, amplitude.l);
+      return TRUE;
+    }
+  }
+  else
+  {
+    if (amplitude.l > AWG_MAX_AMPLITUDE)
+    {
+      return FALSE;
+    }
+    else
+    {
+      AWG_UploadHarmonicAmplitude(1, Packet_Parameter1, amplitude.l);
+      return TRUE;
+    }
+  }
+}
+
+/*! @brief Handles the "arbitrary harmonic phase" request packet for AWG to upload or update a phase
+ *
+ *  @param None.
+ *  @return bool - TRUE if the phase is updated
+ */
+static bool HandleHarmonicPhase(void)
+{
+  uint16union_t phase;
+  phase.s.Hi = Packet_Parameter3;
+  phase.s.Lo = Packet_Parameter2;
+  if (ChannelZeroEdit)
+  {
+    AWG_UploadHarmonicPhase(0, Packet_Parameter1, phase.l);
+    return TRUE;
+  }
+  else
+  {
+    AWG_UploadHarmonicPhase(1, Packet_Parameter1, phase.l);
+    return TRUE;
+  }
+}
+
+/*! @brief Handles the "arbitrary hamonic status" which is used choose between csv downloaded or harmonic arbitrary wave
+ *
+ *  @param None.
+ *  @return bool - TRUE if the status is updated
+ */
+static bool HandleArbitraryStatus(void)
+{
+  AWG_UpdateArbitraryStatus(Packet_Parameter1, Packet_Parameter2);
+  return TRUE;
+}
+
 /*! @brief Handles the "AWG" packets and calls the correct function to handle the request
  *
  *  @param None.
@@ -580,6 +652,18 @@ static void HandlePacket(void)
 
     case (PACKET_ARBITRARY):
       success = HandleArbPacket();
+      break;
+
+    case (PACKET_HARMONIC_AMPLITUDE):
+      success = HandleHarmonicAmplitude();
+      break;
+
+    case (PACKET_HARMONIC_PHASE):
+      success = HandleHarmonicPhase();
+      break;
+
+    case (PACKET_ARBITRARY_STATUS):
+      success = HandleArbitraryStatus();
       break;
   }
 

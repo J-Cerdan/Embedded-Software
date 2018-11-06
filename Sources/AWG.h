@@ -26,6 +26,7 @@
 #define AWG_MAX_AMPLITUDE 32767		//max amplitude that can be displayed
 #define AWG_MIN_OFFSET -32767		//minimum offset that can be displayed
 #define ARB_WAVE_SIZE 1000		//max number of samples that can be stored for an arbitrary waveform
+#define ARB_HAMONIC_SIZE 5 		//max number of harmonics that can be displayed
 
 typedef enum
 {
@@ -39,6 +40,13 @@ typedef enum
 
 typedef struct
 {
+  uint16_t phase[ARB_HAMONIC_SIZE];
+  uint8_t amplitude[ARB_HAMONIC_SIZE];
+  uint8_t nbHarmoics;
+}TArbitraryHarmonic;
+
+typedef struct
+{
   FunctionWaveForm  waveform;			/*!< The wave form for this channel to display. */
   uint16_t frequency;                  		/*!< The frequency of the wave multiplied by 10. */
   uint8_t amplitude;    			/*!< the amplitude of the wave multiplied by 10. */
@@ -47,7 +55,9 @@ typedef struct
   uint16_t arbitraryWave[ARB_WAVE_SIZE];	/*!< The samples for arbitrary wave form */
   uint16_t sizeOfArbitraryWave;			/*!< number of samples in the arbitrary wave form array */
   uint16_t arbitraryIndexAdder;			/*!< The amount the index must increment for arbitrary wave */
+  TArbitraryHarmonic harmonicValues;		/*!< Stores the values for the harmonic wavesforms*/
   bool active;					/*!< Indicates if the channel is active or not */
+  bool arbitraryHarmonic;			/*!< Indicates if the arbitrary waveform will take in the harmonic values */
 } TAWGDacChannel;
 
 extern TAWGDacChannel AWG_DAC_Channels[AWG_NB_CHANNELS];
@@ -109,6 +119,29 @@ bool AWG_UploadAbitraryWave(int16_t sample, uint8_t channelNb);
  *  @param channelNb is the channel who's index is being reset.
  */
 void AWG_ResetAbitraryWaveSize(uint8_t channelNb);
+
+/*! @brief used to upload the harmonic arbitrary waveform amplitude.
+ *
+ *  @param channelNb is the channel the arbitrary harmonic waveform is being uploaded for.
+ *  @param hamonic is which harmonic to update, 0 being the fundamental and 4 being the fifth
+ *  @param amplitude is the actual amplitude of the hamonic
+ */
+void AWG_UploadHarmonicAmplitude(uint8_t channelNb, uint8_t harmonic, uint16_t amplitude);
+
+/*! @brief used to upload the harmonic arbitrary waveform phase.
+ *
+ *  @param channelNb is the channel the arbitrary hamonic waveform is being uploaded for.
+ *  @param hamonic is which harmonic to update, 0 being the fundamental and 4 being the fifth
+ *  @param phase is the actual phase of the hamonic in degrees
+ */
+void AWG_UploadHarmonicPhase(uint8_t channelNb, uint8_t harmonic, uint16_t phase);
+
+/*! @brief used to update a value to switch between hamonic or csv downloaded arbitrary waveform.
+ *
+ *  @param channelNb is the channel the arbitrary hamonic waveform is being uploaded for.
+ *  @param status turns the status as active or not active
+ */
+void AWG_UpdateArbitraryStatus(uint8_t channel, uint8_t status);
 
 #endif
 

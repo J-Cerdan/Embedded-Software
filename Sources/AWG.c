@@ -38,6 +38,7 @@ bool AWG_Init(void)
     AWG_DAC_Channels[i].sizeOfArbitraryWave = 0;	//size of arbitrary array is 0 until wave is uploaded
     AWG_DAC_Channels[i].arbitraryIndexAdder = 0;	//index is 0 until arbitrary wave is uploaded
     AWG_DAC_Channels[i].active = FALSE;			//remains inactive till PC sends signal
+    AWG_DAC_Channels[i].arbitraryHarmonic = FALSE;	//remains inactive till PC sends signal
   }
 
   //initialising the RNG register to be able to generate random values.
@@ -121,6 +122,80 @@ uint16_t ApplyOffset(uint16_t value, uint8_t channelNb)
     return 0;
   else
     return (uint16)sample; //return the offset value if no overflow or value under zero
+}
+
+static uint16_t HarmonicArbitrary(const uint16 functionLookUpTable[], uint8_t channelNb)
+{
+  int32_t harmonicSum = 0;
+
+  for (uint8_t i = 0; i < (AWG_DAC_Channels[channelNb].harmonicValues.nbHarmoics); i++) //loops through all the harmonics
+  {
+    uint16_t value = functionLookUpTable[((AWG_DAC_Channels[channelNb].index * (i + 1)) + AWG_DAC_Channels[channelNb].harmonicValues.phase[i]) % 10000];
+
+    uint16_t sample = value; // applies the hamonic amplitude
+    if (sample > 32767) //for values above the "zero" line
+    {
+      sample -= 32767;
+      sample /= 100;
+      sample *= AWG_DAC_Channels[channelNb].harmonicValues.amplitude[i];
+      value = sample + 32767;
+    }
+    else //for values below the "zero" line
+    {
+      sample = 32767 - value;
+      sample /= 100;
+      sample *= AWG_DAC_Channels[channelNb].harmonicValues.amplitude[i];
+      value = 32767 - sample;
+    }
+    if(i == 0) //adds to the over all sum
+      harmonicSum += value;
+    else if (value > 32767)
+      harmonicSum += (value - 32727);
+    else
+      harmonicSum -= (32727 - value);
+  }
+
+  AWG_DAC_Channels[channelNb].index = (AWG_DAC_Channels[channelNb].index + AWG_DAC_Channels[channelNb].frequency) % 10000; //maintain the index count\
+
+  //adjust the over all amplitude of the channel
+  if (harmonicSum > 32767) //for values above the "zero" line
+  {
+    harmonicSum -= 32767;
+    harmonicSum /= 100;
+    harmonicSum *= AWG_DAC_Channels[channelNb].amplitude;
+    harmonicSum = harmonicSum + 32767;
+  }
+  else //for values below the "zero" line
+  {
+    harmonicSum = 32767 - harmonicSum;
+    harmonicSum /= 100;
+    harmonicSum *= AWG_DAC_Channels[channelNb].amplitude;
+    harmonicSum = 32767 - harmonicSum;
+  }
+
+  //apply the offset
+  harmonicSum = harmonicSum + AWG_DAC_Channels[channelNb].offset;
+
+  //return the value bassed on whether if has gone over, under or inbetween the min and max amplitude
+  if (harmonicSum > 65534) //for over flow to just clamp the value
+    return 65534;
+  else if (harmonicSum < 0) //for values less than 0 to clamp it
+    return 0;
+  else
+    return (uint16)(harmonicSum); //return the offset value if no overflow or value under zero
+
+}
+
+/*! @brief Read a Register that generated a random number.
+ *
+ *  @return uint16_t - the value of the random number
+ */
+static uint16_t intRand(void)
+{
+  while (!(RNG_SR & RNG_SR_OREG_LVL_MASK))
+    {/* Wait for a valid output*/}
+
+  return RNG_OR & 0xFFFF;
 }
 
 /*! @brief Process a sample according to the waveform and return it to send.
@@ -207,23 +282,11 @@ uint16_t ProcessAbitrarySample(const uint16 functionLookUpTable[], uint8_t chann
   }
 }
 
-/*! @brief Read a Register that generated a random number.
- *
- *  @return uint16_t - the value of the random number
- */
-static uint16_t intRand(void)
-{
-  while (!(RNG_SR & RNG_SR_OREG_LVL_MASK))
-    {/* Wait for a valid output*/}
-
-  return RNG_OR & 0xFFFF;
-}
-
 /*! @brief Process a sample that will be used for noise.
  *
  *  @return uint16_t - the value of the noise sample that has been processed
  */
-uint16 GetNoiseSample(void)
+uint16 GetNoiseSample(uint8_t channelNb)
 {
   uint16_t sumOfRandomValues;		//add 12 sets of random noise
   for (uint8_t i = 0; i < 12; i++)
@@ -231,15 +294,17 @@ uint16 GetNoiseSample(void)
     sumOfRandomValues += intRand();
   }
 
+  sumOfRandomValues = sumOfRandomValues - (4 << 13);
+
+  sumOfRandomValues = ApplyAmplitude(sumOfRandomValues, channelNb);
+
+  sumOfRandomValues = ApplyOffset(sumOfRandomValues, channelNb);
+
   return sumOfRandomValues - (4 << 13);	//bit shift the four 13 times and minus it from the random values
 
 }
 
-/*! @brief Request for a sample to get processed according to the channel selected.
- *
- *  @param channelNb is the channel that will processed to generate a sample.
- *  @return uint16_t - the value of the sample that has been processed
- */
+
 uint16_t AWG_SampleGet(uint8_t channelNb)
 {
   if (channelNb == 0 || channelNb == 1) //check if a valid channel has been selected
@@ -263,22 +328,20 @@ uint16_t AWG_SampleGet(uint8_t channelNb)
 	break;
 
       case (NOISE):
-	return GetNoiseSample();
+	return GetNoiseSample(channelNb);
 	break;
 
       case (ARBITRARY_FUNCTION):
-	return ProcessAbitrarySample(AWG_DAC_Channels[channelNb].arbitraryWave, channelNb);
+	if (AWG_DAC_Channels[channelNb].arbitraryHarmonic)
+	  return HarmonicArbitrary(FUNCTIONS_SINEWAVE, channelNb);
+	else
+	  return ProcessAbitrarySample(AWG_DAC_Channels[channelNb].arbitraryWave, channelNb);
 	break;
     }
   }
 }
 
-/*! @brief Update the frequency of any channel.
- *
- *  @param channelNb is the channel that will have its frequency updated
- *  @param frequency the new frequency value to be updated
- *  @return bool - true if the frequency was updated correctly
- */
+
 bool AWG_UpdateFrequency(uint8_t channelNb, uint16_t frequency)
 {
   uint64_t value = frequency * 10;
@@ -302,12 +365,7 @@ bool AWG_UpdateFrequency(uint8_t channelNb, uint16_t frequency)
   return FALSE;
 }
 
-/*! @brief Update the amplitude of any channel.
- *
- *  @param channelNb is the channel that will have its amplitude updated
- *  @param amplitude the new amplitude value to be updated
- *  @return bool - true if the amplitude was updated correctly
- */
+
 bool AWG_UpdateAmplitude(uint8_t channelNb, uint16_t amplitude)
 {
   if (channelNb == 0 || channelNb == 1) //check to see if valid channels are passed in
@@ -328,12 +386,7 @@ bool AWG_UpdateAmplitude(uint8_t channelNb, uint16_t amplitude)
   return FALSE;
 }
 
-/*! @brief Update the offset of any channel.
- *
- *  @param channelNb is the channel that will have its offset updated
- *  @param amplitude the new offset value to be updated
- *  @return bool - true if the offset was updated correctly
- */
+
 bool AWG_UpdateOffset(uint8_t channelNb, uint16_t offset)
 {
   if (channelNb == 0 || channelNb == 1) //check to see if a valid channel is provided
@@ -342,6 +395,35 @@ bool AWG_UpdateOffset(uint8_t channelNb, uint16_t offset)
     return TRUE;
   }
   return FALSE;
+}
+
+void AWG_UploadHarmonicAmplitude(uint8_t channelNb, uint8_t harmonic, uint16_t amplitude)
+{
+  if (channelNb == 0 || channelNb == 1)
+  {
+    uint64_t value = amplitude * 10;
+
+    if ((value % 3276) >= 1638) //rounds up if true
+      value = (value / 3276) + 1;
+    else
+      value /= 3276;
+    AWG_DAC_Channels[channelNb].harmonicValues.amplitude[harmonic] = value; //updates the amplitude
+    AWG_DAC_Channels[channelNb].harmonicValues.nbHarmoics = harmonic + 1; //update the number of hamonics stored, will take the last one
+  }
+}
+
+void AWG_UploadHarmonicPhase(uint8_t channelNb, uint8_t harmonic, uint16_t phase)
+{
+  if (channelNb == 0 || channelNb == 1)
+  {
+    AWG_DAC_Channels[channelNb].harmonicValues.phase[harmonic] = phase; //update the phase
+    AWG_DAC_Channels[channelNb].harmonicValues.nbHarmoics = harmonic + 1; //update the number of hamonics stored, will take the last one
+  }
+}
+
+void AWG_UpdateArbitraryStatus(uint8_t channelNb, uint8_t status)
+{
+  AWG_DAC_Channels[channelNb].arbitraryHarmonic = status; //set the status according the parameter
 }
 
 
