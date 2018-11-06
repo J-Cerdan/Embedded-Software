@@ -23,11 +23,11 @@ extern OS_ECB* CntDone;
 extern OS_ECB* Ch00Processing;
 extern OS_ECB* Ch01Processing;
 
-extern uint8_t DACCHANNEL00;
-extern uint8_t DACCHANNEL01;
+extern uint8_t DAC_CHANNEL_00;
+extern uint8_t DAC_CHANNEL_01;
 
-extern uint16_t Ch00Value;
-extern uint16_t Ch01Value;
+extern int32_t Ch00_Value;
+extern int32_t Ch01_Value;
 
 
 /*! @brief Sets up the PIT before first use.

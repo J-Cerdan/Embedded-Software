@@ -15,7 +15,7 @@
 ** ###################################################################*/
 /*!
 ** @file main.c
-** @version 5.0
+** @version 6.0
 ** @brief
 **         Main module.
 **         This module contains user's application code.
@@ -65,7 +65,9 @@
 #define PACKET_PROTOCOL_MODE 0x0A
 #define PACKET_ANALOG_INPUT_VALUE 0x50
 #define PACKET_WAVE 0x60
+#define PACKET_ARB_WAVE 0x61
 
+//macros defined for determining configurations to be executed
 #define STATUS 0x00
 #define WAVEFORM 0x01
 #define FREQUENCY 0x02
@@ -74,6 +76,13 @@
 #define ALL_WAVEFORMS_ON 0x05
 #define ALL_WAVEFORMS_OFF 0x06
 #define ACTIVE_CHANNEL 0x07
+
+//macros defined for arbitrary wave functions
+#define ARB_CHANNEL_00 0x00
+#define ARB_CHANNEL_01 0x01
+#define ARB_VALUE_RECEIVE 0x02
+#define ARB_VALUE_END 0xFF
+#define MAX_ARB_ARRAY 1000
 
 
 //global private constant to store the baudRate
@@ -92,8 +101,9 @@ static bool synchronous = FALSE;
 static const uint8_t ADCCHANNEL = 0;
 //RTC Time
 static uint8_t Hours = 0, Minutes = 0, Seconds = 0;
-//Edit Channel Selection
-static uint8_t EditChannel = 0;
+//Arbitrary Build Channel
+static uint8_t ArbChannel = 0;
+
 
 //PacketThread and InitThread stack
 OS_THREAD_STACK(PacketStack, THREAD_STACK_SIZE);
@@ -236,127 +246,106 @@ static bool HandleProtocolPacket(bool specialPacket)
   return FALSE;
 }
 
-static bool SetStatus(uint8_t outputChannel, uint8_t enable)
-{
-  DACChannel[outputChannel].active = enable;
-  return TRUE;
-}
 
-static bool SetWaveform(uint8_t selectedWaveform)
-{
-  DACChannel[EditChannel].waveform = selectedWaveform;
-  return TRUE;
-}
-
-static bool SetFrequency(uint8_t LSB, uint8_t MSB)
-{
-  uint16union_t recievedfrequency;
-  recievedfrequency.s.Lo = LSB;
-  recievedfrequency.s.Hi = MSB;
-
-  DACChannel[EditChannel].frequency = FrequencyConversion(recievedfrequency.l);
-
-  return TRUE;
-}
-
-static bool SetAmplitude(uint8_t LSB, uint8_t MSB)
-{
-  uint16union_t recievedamplitude;
-  recievedamplitude.s.Lo = LSB;
-  recievedamplitude.s.Hi = MSB;
-
-  DACChannel[EditChannel].amplitude = AmplitudeOffsetConversion(recievedamplitude.l);
-
-  return TRUE;
-}
-
-static bool SetOffset(uint8_t LSB, uint8_t MSB)
-{
-  uint16union_t recievedoffset;
-  recievedoffset.s.Lo = LSB;
-  recievedoffset.s.Hi = MSB;
-
-  DACChannel[EditChannel].offset = recievedoffset.l;
-
-  return TRUE;
-}
-
-static bool SetAllWaveformStatus(bool enable)
-{
-  for (uint8_t i = 0; i < NB_DAC_CHANNELS; i++)
-    DACChannel[i].active = enable;
-
-  return TRUE;
-}
-
-static bool SetActive(uint8_t outputChannel)
-{
-  EditChannel = outputChannel;
-  return TRUE;
-}
-
+/*! @brief Handles the Waveform packet
+ *
+ *  @param None.
+ *  @return bool - TRUE if all the functions that were called were successful
+ */
 static bool HandleWavePacket(void)
 {
   switch (Packet_Parameter1)
   {
     case (STATUS):
       if (Packet_Parameter2 < 2 && Packet_Parameter3 < 2)
-      {
-        SetStatus(Packet_Parameter2, Packet_Parameter3);
-	return TRUE;
-      }
+        return Set_Status(Packet_Parameter2, Packet_Parameter3);
       break;
 
     case (WAVEFORM):
-      if (Packet_Parameter2 < 4)
-	{
-	  SetWaveform(Packet_Parameter2);
-	  return TRUE;
-	}
+      if (Packet_Parameter2 < 4 || Packet_Parameter2 == 5)
+        return Set_Waveform(Packet_Parameter2);
       break;
 
     case (FREQUENCY):
-      SetFrequency(Packet_Parameter2, Packet_Parameter3);
-      return TRUE;
+      return Set_Frequency(Packet_Parameter2, Packet_Parameter3);
       break;
 
     case (AMPLITUDE):
-      SetAmplitude(Packet_Parameter2, Packet_Parameter3);
-      return TRUE;
+      return Set_Amplitude(Packet_Parameter2, Packet_Parameter3);
       break;
 
     case (OFFSET):
-      SetOffset(Packet_Parameter2, Packet_Parameter3);
-      return TRUE;
+      return Set_Offset(Packet_Parameter2, Packet_Parameter3);
       break;
 
     case (ALL_WAVEFORMS_ON):
-      if (Packet_Parameter1 = 5)
-	{
-	  SetAllWaveformStatus(TRUE);
-	}
-      return TRUE;
+      return Set_AllWaveformStatus(TRUE);
       break;
 
     case (ALL_WAVEFORMS_OFF):
-     /* if (Packet_Parameter1 = 6)
-	{
-	   SetAllWaveformStatus(FALSE);
-	}*/
-      return TRUE;
+      return Set_AllWaveformStatus(FALSE);
       break;
 
     case (ACTIVE_CHANNEL):
       if (Packet_Parameter2 < 2)
-	{
-	  SetActive(Packet_Parameter2);
-	  return TRUE;
-	}
+        return Set_Active(Packet_Parameter2);
       break;
   }
 
   return FALSE;
 
+}
+
+/*! @brief Handles the Arbitrary Wave packet
+ *
+ *  @param None.
+ *  @return bool - TRUE if all the functions that were called were successful
+ */
+static bool HandleArbWavePacket(void)
+{
+  //Temporary variable to store received data
+  int16union_t arbitraryValue;
+
+  switch (Packet_Parameter1)
+    {
+      //End if reached max array size
+      if (ArbIndex = MAX_ARB_ARRAY)
+      {
+	Packet_Parameter1 = ARB_VALUE_END;
+      }
+
+      case (ARB_CHANNEL_00):
+        ArbChannel = 0;
+	ArbIndex = 0;
+	arbitraryValue.s.Lo = Packet_Parameter2;
+	arbitraryValue.s.Hi = Packet_Parameter3;
+
+	Arbitrary_AddValues(ArbChannel, arbitraryValue.l);
+	break;
+
+      case (ARB_CHANNEL_01):
+        ArbChannel = 1;
+      	ArbIndex = 0;
+      	arbitraryValue.s.Lo = Packet_Parameter2;
+      	arbitraryValue.s.Hi = Packet_Parameter3;
+
+      	Arbitrary_AddValues(ArbChannel, arbitraryValue.l);
+        break;
+
+      case (ARB_VALUE_RECEIVE):
+      	arbitraryValue.s.Lo = Packet_Parameter2;
+      	arbitraryValue.s.Hi = Packet_Parameter3;
+
+      	Arbitrary_AddValues(ArbChannel, arbitraryValue.l);
+        break;
+
+      case (ARB_VALUE_END):
+    	DACChannel[ArbChannel].arbitrarymaxindex = ArbIndex;
+	return TRUE;
+        break;
+    }
+
+   return FALSE;
 }
 
 
@@ -438,6 +427,10 @@ static void HandlePacket(void)
     case (PACKET_WAVE):
       success = HandleWavePacket();
       break;
+
+    case (PACKET_ARB_WAVE):
+      success = HandleArbWavePacket();
+      break;
   }
 
   if (Packet_Command & PACKET_ACK_MASK) //sends acknowledgment (if PC requested it) packet to PC
@@ -482,7 +475,7 @@ static void TowerNumberModeInit(void)
 static void PITCallback(void* arg)
 {
 
-  Analog_Get(ADCCHANNEL);
+  //Analog_Get(ADCCHANNEL);
 
 }
 
@@ -541,7 +534,7 @@ static void PITThread(void* arg)
       LEDs_Toggle(LED_GREEN);
       ledToggleCount = 0;
     }
-
+    /*
     if(synchronous)
     {
       Packet_Put(PACKET_ANALOG_INPUT_VALUE, 0x00, Analog_Input[ADCCHANNEL].value.s.Lo, Analog_Input[ADCCHANNEL].value.s.Hi);
@@ -551,6 +544,7 @@ static void PITThread(void* arg)
       if (Analog_Input[ADCCHANNEL].value.l != Analog_Input[ADCCHANNEL].oldValue.l)
 	Packet_Put(PACKET_ANALOG_INPUT_VALUE, 0x00, Analog_Input[ADCCHANNEL].value.s.Lo, Analog_Input[ADCCHANNEL].value.s.Hi);
     }
+    */
   }
 }
 
@@ -593,7 +587,6 @@ static void InitThread(void* arg)
     //handles the initialization tower number and mode in the flash
     TowerNumberModeInit();
 
-    //AWG_Init();
     //sends the initial packets when the tower starts up
     HandleSpecialPacket(TRUE);
 
@@ -604,64 +597,55 @@ static void InitThread(void* arg)
 
 }
 
-
+/*! @brief Thread to handle processing for Channel 1 Thread
+ *
+ *  @param void* arg
+ *  @return void
+ */
 static void Ch00Thread(void* arg)
 {
   for (;;)
   {
-    //check if channel active
+    //check if channel processing is active
     (void)OS_SemaphoreWait(Ch00Processing, 0);
 
-    /*
-    static uint16_t Ch00index = 0;
+    //Obtain value for channel 0
+    Ch00_Value = AWG_DAC_Get(DAC_CHANNEL_00);
 
-    Analog_Put(VoltageAdjust(WAVEFORM_SINEWAVE[Ch00index], 7converted voltage input function, 22936voltage input), DACCHANNEL00);
-
-    Ch00index = (Ch00index + 10converted frequency function) % 10000;
-    ----
-
-    if (DACChannel[DACCHANNEL00].active)
+    if (Ch00_Value >= 65535)
     {
-      Analog_Put(AWG_DAC_Get(DACCHANNEL00), DACCHANNEL00);
+	Ch00_Value = 0xFFFF;
     }
-    */
-
-    Ch00Value = AWG_DAC_Get(DACCHANNEL00);
-
-    if (Ch00Value >= 65535)
+    else if (Ch00_Value <= 0)
     {
-	Ch00Value = 0xFFFF;
+	Ch00_Value = 0;
     }
 
   }
 }
 
+/*! @brief Thread to handle processing for Channel 1 Thread
+ *
+ *  @param void* arg
+ *  @return void
+ */
 static void Ch01Thread(void* arg)
 {
   for (;;)
   {
-    //check if channel active
+    //check if channel processing is active
     (void)OS_SemaphoreWait(Ch01Processing, 0);
 
-    /*
-    static uint16_t Ch01index = 0;
+    //Obtain value for channel 1
+    Ch01_Value = AWG_DAC_Get(DAC_CHANNEL_01);
 
-    Analog_Put(WAVEFORM_SAWTOOTHWAVE[Ch01index], DACCHANNEL01);
-
-    Ch01index = (Ch01index + 10) % 10000;
-    ------
-    if (DACChannel[DACCHANNEL01].active)
+    if (Ch01_Value >= 65535)
     {
-      Analog_Put(AWG_DAC_Get(DACCHANNEL01), DACCHANNEL01);
+      Ch01_Value = 0xFFFF;
     }
-    */
-    //
-
-    Ch01Value = AWG_DAC_Get(DACCHANNEL01);
-
-    if (AWG_DAC_Get(DACCHANNEL01) >= 65535)
+    else if (Ch01_Value <= 0)
     {
-      Ch01Value = 0xFFFF;
+      Ch01_Value = 0;
     }
 
   }

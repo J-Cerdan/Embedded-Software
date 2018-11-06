@@ -44,17 +44,9 @@ static uint32union_t Init_Command;
 static const uint16_t Message_Command[] = {0x0070, 0x0072};
 
 
-/*! @brief Function to write to the DAC
- *
- *  @param channelNb is the number of the analog input channel to sample.
- *  @param data is data to transmit.
- *
- *  @return bool - true if the data was sent successfully.
- *
- */
 bool Analog_Put(const uint16_t data, const uint8_t channelNb)
 {
-
+  // Select LTC2704
   PMcL_SPI_Adv_SelectSlaveDevice(4);
 
   if (channelNb == 0 || channelNb == 1)
@@ -62,10 +54,7 @@ bool Analog_Put(const uint16_t data, const uint8_t channelNb)
     PMcL_SPI_Adv_Exchange(Message_Command[channelNb], NULL, DAC_Select, TRUE);
     PMcL_SPI_Adv_Exchange(data, NULL, DAC_Select, FALSE);
   }
-
-
   return TRUE;
-
 }
 
 /*! @brief Function to obtain and store median values
@@ -107,7 +96,6 @@ bool Analog_Init(const uint32_t moduleClock)
   SPIValues.ctar[0].delayAfterTransfer = 5000;
   SPIValues.ctar[1].delayAfterTransfer = 0;
 
-
   for (uint8_t i = 0; i < 2; i++)
   {
     SPIValues.ctar[i].clockPolarity = SPI_CLOCK_POLARITY_INACTIVE_LOW;
@@ -121,13 +109,15 @@ bool Analog_Init(const uint32_t moduleClock)
   PMcL_SPI_Adv_Init(&SPIValues, moduleClock);
 
   //Initalise DAC
-  //Set all DACs to -10V to +10V bipolar range
-  //Set all DACs to mid-scale
-  //Update all DACs for both span and code
-
+  //Set all DACs to -10V to +10V bipolar range 0x03
+  //Set all DACs to mid-scale 0x8000
+  //Update all DACs for both span and code 0x008f
   Init_Command.l = 0x008f8003;
 
+  // Select LTC2704
   PMcL_SPI_Adv_SelectSlaveDevice(4);
+
+  //Sends initialisation codes for DAC
   PMcL_SPI_Adv_Exchange(Init_Command.s.Hi, NULL, DAC_Select, TRUE);
   PMcL_SPI_Adv_Exchange(Init_Command.s.Lo, NULL, DAC_Select, FALSE);
 

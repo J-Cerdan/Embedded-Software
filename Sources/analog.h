@@ -41,7 +41,14 @@ typedef struct
 
 extern TAnalogInput Analog_Input[ANALOG_NB_INPUTS];
 
-
+/*! @brief Function to write to the DAC
+ *
+ *  @param channelNb is the number of the analog input channel to sample.
+ *  @param data is data to transmit.
+ *
+ *  @return bool - true if the data was sent successfully.
+ *
+ */
 bool Analog_Put(const uint16_t data, const uint8_t channelNb);
 
 /*! @brief Sets up the ADC before first use.

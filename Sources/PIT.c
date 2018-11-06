@@ -24,6 +24,8 @@
 #include "OS.h"
 #include "ThreadManage.h"
 #include "AWG.h"
+#include "analog.h"
+
 
 //Private global variable to contain module clock
 static uint32_t ModuleClk;
@@ -39,11 +41,11 @@ OS_ECB* CntDone;
 OS_ECB* Ch00Processing;
 OS_ECB* Ch01Processing;
 
-uint16_t Ch00Value;
-uint16_t Ch01Value;
+int32_t Ch00_Value;
+int32_t Ch01_Value;
 
-uint8_t DACCHANNEL00 = 0;
-uint8_t DACCHANNEL01 = 1;
+uint8_t DAC_CHANNEL_00 = 0;
+uint8_t DAC_CHANNEL_01 = 1;
 
 
 static void PITThread(void* arg);
@@ -135,25 +137,25 @@ void __attribute__ ((interrupt)) PIT_ISR(void)
   //signal the semaphore
   (void)OS_SemaphoreSignal(CntDone);
 
+  //Switch between channels every 0.5ms
   if (EnableCh00)
   {
     (void)OS_SemaphoreSignal(Ch00Processing);
 
-    if (DACChannel[DACCHANNEL00].active)
+    if (DACChannel[DAC_CHANNEL_00].active)
     {
-      Analog_Put(Ch00Value, DACCHANNEL00);
+      Analog_Put(Ch00_Value, DAC_CHANNEL_00);
     }
 
     EnableCh00 = FALSE;
   }
   else
   {
-
     (void)OS_SemaphoreSignal(Ch01Processing);
 
-    if (DACChannel[DACCHANNEL01].active)
+    if (DACChannel[DAC_CHANNEL_01].active)
     {
-      Analog_Put(Ch01Value, DACCHANNEL01);
+      Analog_Put(Ch01_Value, DAC_CHANNEL_01);
     }
 
     EnableCh00 = TRUE;

@@ -17,67 +17,120 @@
 #ifndef SOURCES_AWG_H_
 #define SOURCES_AWG_H_
 
+//macros defined for determining DAC channels
 #define NB_DAC_CHANNELS 2
+//macros defined for determining Maximum Arbitrary Size
+#define MAX_ARBITRARY_SIZE 1000
 
+//Arbitrary Index Counter
+extern uint16_t ArbIndex;
 
+//typedef definition structure for waveforms
 typedef enum
 {
   WAVEFORMS_SINEWAVE = 0,
   WAVEFORMS_SQUAREWAVE = 1,
   WAVEFORMS_TRIANGLEWAVE = 2,
-  WAVEFORMS_SAWTOOTHWAVE = 3
+  WAVEFORMS_SAWTOOTHWAVE = 3,
+  WAVEFORMS_ARBITRARYWAVE = 5
 } TWaveforms;
 
+//Channel Structure
 typedef struct
 {
   bool active;		/*!< Active Configuration */
   TWaveforms waveform;     /*!< Waveform Configuration */
   uint16_t frequency;    /*!< Frequency Configuration */
   uint8_t amplitude;    /*!< Amplitude Configuration */
-  uint16_t offset;      /*!< Offset Configuration */
-  uint16_t index;	/*!< Offset Configuration */
+  int16_t offset;      /*!< Offset Configuration */
+  uint16_t index;	/*!< Index Configuration */
+  uint16_t arbitrarymaxindex;	/*!< Arbitrary Maximum Configuration */
+  uint16_t arbitraryincrement;	/*!< Arbitrary Increment Configuration */
+  uint16_t arbitrarywaveform[MAX_ARBITRARY_SIZE]; /*!< Arbitrary Waveform Array Configuration */
 
 } TAWGChannel;
 
 extern TAWGChannel DACChannel[NB_DAC_CHANNELS];
 
-bool AWG_Init();
-
-uint16_t VoltageAdjust(uint8_t channelNb, const uint16_t lookUpTable[]);
-
-uint16_t AWG_DAC_Get(uint8_t channelNb);
-
-
-
-
-/*! @brief Function to convert amplitude/offset value needed for waveform
+/*! @brief Function to initialise DAC Channels
  *
- *  @param value is the amplitude/offset received to be converted
+ *  @param void
  *
- *  @return returns the amplitude/offset in correct form
+ *  @return bool - TRUE if all the functions that were called were successful
  *
  */
-uint16_t AmplitudeOffsetConversion(uint16_t value);
+bool AWG_Init(void);
 
-/*! @brief Function to convert frequency value needed for waveform
+/*! @brief Function to obtain waveform values
  *
- *  @param frequency - is the frequency received to be converted
+ *  @param channelNb channel being used to access data
  *
- *  @return returns the frequency in correct form
+ *  @return uint32_t the resulting value after processing
  *
  */
-uint16_t FrequencyConversion(uint16_t frequency);
+int32_t AWG_DAC_Get(uint8_t channelNb);
 
-
-/*! @brief Function to calculate value needed for waveform
+/*! @brief Function to convert Arbitrary waveform values from signed to unsigned
  *
- *  @param index is the index position of the value required for the function
- *  @param waveform is the waveform array required to obtain the value
+ *  @param channelNb is channel configured to access data
  *
- *  @return returns the averaged value of the two values
+ *  @return void
  *
  */
-uint16_t Average(uint16_t index, const uint16_t waveform[]);
+void Arbitrary_AddValues(uint8_t channelNb, int16_t value);
+
+/*! @brief Sets active status of one channel
+ *
+ *  @param outputChannel - channel to be configured
+ *  @param enable - status to configure active variable
+ *  @return bool - TRUE if all the functions that were called were successful
+ */
+bool Set_Status(uint8_t outputChannel, uint8_t enable);
+
+/*! @brief Sets waveform of channel being configured
+ *
+ *  @param selectedWaveform - waveform being selected
+ *  @return bool - TRUE if all the functions that were called were successful
+ */
+bool Set_Waveform(uint8_t selectedWaveform);
+
+/*! @brief Sets frequency of channel being configured
+ *
+ *  @param LSB
+ *  @param MSB
+ *  @return bool - TRUE if all the functions that were called were successful
+ */
+bool Set_Frequency(uint8_t LSB, uint8_t MSB);
+
+/*! @brief Sets amplitude of channel being configured
+ *
+ *  @param LSB
+ *  @param MSB
+ *  @return bool - TRUE if all the functions that were called were successful
+ */
+bool Set_Amplitude(uint8_t LSB, uint8_t MSB);
+
+/*! @brief Sets offset of channel being configured
+ *
+ *  @param LSB
+ *  @param MSB
+ *  @return bool - TRUE if all the functions that were called were successful
+ */
+bool Set_Offset(uint8_t LSB, uint8_t MSB);
+
+/*! @brief Sets all channel active statuses
+ *
+ *  @param enable - boolean to set statuses of all channels
+ *  @return bool - TRUE if all the functions that were called were successful
+ */
+bool Set_AllWaveformStatus(bool enable);
+
+/*! @brief Sets channel that will be configured into a global variable
+ *
+ *  @param outputChannel - channel selected to have values edited
+ *  @return bool - TRUE if all the functions that were called were successful
+ */
+bool Set_Active(uint8_t outputChannel);
 
 
 

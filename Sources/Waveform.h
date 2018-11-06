@@ -19,8 +19,10 @@
 
 #define MAX_WAVE_SIZE 10000LU
 
-//lookup table generated from https://daycounter.com/Calculators
+//lookup table generated from https://daycounter.com/Calculators and Excel
 //values between 0 and 65,535
+
+
 extern const uint16_t WAVEFORM_SINEWAVE[MAX_WAVE_SIZE];
 
 extern const uint16_t WAVEFORM_TRIANGLEWAVE[MAX_WAVE_SIZE];
