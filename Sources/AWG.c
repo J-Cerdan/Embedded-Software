@@ -23,7 +23,7 @@ bool AWG_Init()
 
   for (uint8_t i=0; i < NB_DAC_CHANNELS; i++)
   {
-    DACChannel[i].active = TRUE;
+    DACChannel[i].active = FALSE;
     DACChannel[i].waveform = WAVEFORMS_SINEWAVE;
     DACChannel[i].frequency = 10;
     DACChannel[i].amplitude = 10;
@@ -40,13 +40,13 @@ uint16_t VoltageAdjust(uint8_t channelNb, const uint16_t lookUpTable[])
   uint16_t centreAdjust = 0;
 
   //equation to adjust center of waveform
-  centreAdjust = 32767 - ((DACChannel[channelNb].amplitude * 32767) / 10) + DACChannel[channelNb].offset;
+  centreAdjust = (32767 - ((DACChannel[channelNb].amplitude * 32767) / 100)) + DACChannel[channelNb].offset;
 
 
   DACChannel[channelNb].index = (DACChannel[channelNb].index + DACChannel[channelNb].frequency) % 10000;
 
   //equation to adjust PP voltage of waveform
-  return ((lookUpTable[DACChannel[channelNb].index] * (DACChannel[channelNb].amplitude)) / 10) + centreAdjust;
+  return ((lookUpTable[DACChannel[channelNb].index] * (DACChannel[channelNb].amplitude)) / 100) + centreAdjust;
 }
 
 uint16_t AWG_DAC_Get(uint8_t channelNb)
@@ -58,11 +58,11 @@ uint16_t AWG_DAC_Get(uint8_t channelNb)
       break;
 
     case (WAVEFORMS_SQUAREWAVE):
-      return VoltageAdjust(channelNb, WAVEFORM_TRIANGLEWAVE);
+      return VoltageAdjust(channelNb, WAVEFORM_SQUAREWAVE);
       break;
 
     case (WAVEFORMS_TRIANGLEWAVE):
-      return VoltageAdjust(channelNb, WAVEFORM_SQUAREWAVE);
+      return VoltageAdjust(channelNb, WAVEFORM_TRIANGLEWAVE);
       break;
 
     case (WAVEFORMS_SAWTOOTHWAVE):

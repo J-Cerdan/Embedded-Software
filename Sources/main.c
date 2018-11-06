@@ -276,7 +276,7 @@ static bool SetOffset(uint8_t LSB, uint8_t MSB)
   recievedoffset.s.Lo = LSB;
   recievedoffset.s.Hi = MSB;
 
-  DACChannel[EditChannel].offset = AmplitudeOffsetConversion(recievedoffset.l);
+  DACChannel[EditChannel].offset = recievedoffset.l;
 
   return TRUE;
 }
@@ -295,7 +295,7 @@ static bool SetActive(uint8_t outputChannel)
   return TRUE;
 }
 
-static bool HandleWavePacket()
+static bool HandleWavePacket(void)
 {
   switch (Packet_Parameter1)
   {
@@ -305,46 +305,45 @@ static bool HandleWavePacket()
         SetStatus(Packet_Parameter2, Packet_Parameter3);
 	return TRUE;
       }
-
       break;
 
     case (WAVEFORM):
-      if (Packet_Parameter2 < 3)
+      if (Packet_Parameter2 < 4)
 	{
 	  SetWaveform(Packet_Parameter2);
 	  return TRUE;
 	}
-
       break;
 
     case (FREQUENCY):
       SetFrequency(Packet_Parameter2, Packet_Parameter3);
       return TRUE;
-
       break;
 
     case (AMPLITUDE):
       SetAmplitude(Packet_Parameter2, Packet_Parameter3);
       return TRUE;
-
       break;
 
     case (OFFSET):
       SetOffset(Packet_Parameter2, Packet_Parameter3);
       return TRUE;
-
       break;
 
     case (ALL_WAVEFORMS_ON):
-      SetAllWaveformStatus(TRUE);
+      if (Packet_Parameter1 = 5)
+	{
+	  SetAllWaveformStatus(TRUE);
+	}
       return TRUE;
-
       break;
 
     case (ALL_WAVEFORMS_OFF):
-      SetAllWaveformStatus(FALSE);
+     /* if (Packet_Parameter1 = 6)
+	{
+	   SetAllWaveformStatus(FALSE);
+	}*/
       return TRUE;
-
       break;
 
     case (ACTIVE_CHANNEL):
@@ -353,7 +352,6 @@ static bool HandleWavePacket()
 	  SetActive(Packet_Parameter2);
 	  return TRUE;
 	}
-
       break;
   }
 
@@ -438,7 +436,7 @@ static void HandlePacket(void)
       break;
 
     case (PACKET_WAVE):
-      success = HandleWavePacket(FALSE);
+      success = HandleWavePacket();
       break;
   }
 
@@ -595,7 +593,7 @@ static void InitThread(void* arg)
     //handles the initialization tower number and mode in the flash
     TowerNumberModeInit();
 
-
+    //AWG_Init();
     //sends the initial packets when the tower starts up
     HandleSpecialPacket(TRUE);
 
@@ -627,13 +625,12 @@ static void Ch00Thread(void* arg)
       Analog_Put(AWG_DAC_Get(DACCHANNEL00), DACCHANNEL00);
     }
     */
-    if (AWG_DAC_Get(DACCHANNEL00) <= 65535)
+
+    Ch00Value = AWG_DAC_Get(DACCHANNEL00);
+
+    if (Ch00Value >= 65535)
     {
-      Ch00Value = AWG_DAC_Get(DACCHANNEL00);
-    }
-    else
-    {
-      Ch00Value = 0xFFFF;
+	Ch00Value = 0xFFFF;
     }
 
   }
@@ -659,11 +656,10 @@ static void Ch01Thread(void* arg)
     }
     */
     //
-    if (AWG_DAC_Get(DACCHANNEL01) <= 65535)
-    {
-      Ch01Value = AWG_DAC_Get(DACCHANNEL01);
-    }
-    else
+
+    Ch01Value = AWG_DAC_Get(DACCHANNEL01);
+
+    if (AWG_DAC_Get(DACCHANNEL01) >= 65535)
     {
       Ch01Value = 0xFFFF;
     }
@@ -685,8 +681,6 @@ int main(void)
   /*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
   PE_low_level_init();
   /*** End of Processor Expert internal initialization.                    ***/
-
-  //AWG_Init();
 
   OS_Init(CPU_CORE_CLK_HZ, false);
 
