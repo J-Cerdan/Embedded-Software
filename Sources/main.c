@@ -79,7 +79,7 @@ static const uint8_t MinorTowerVersion = 0x00;
 //TFTMChannel variable for Channel 0
 static TFTMChannel Ch0;
 //store channel to be synchronous or asynchronous
-static bool synchronous = FALSE;
+static bool Synchronous = FALSE;
 //LTC1859 channel to be used
 static const uint8_t ADCCHANNEL = 0;
 //RTC Time
@@ -164,7 +164,7 @@ static bool HandleNumberPacket(bool specialPacket)
       return Flash_Write16((uint16_t*)NvTowerNb, Packet_Parameter23);
     else if (!(Packet_Parameter2 || Packet_Parameter3))
       return Packet_Put(PACKET_NUMBER, 0x01, (*NvTowerNb).s.Lo, (*NvTowerNb).s.Hi);
-    }
+  }
   return FALSE;
 }
 
@@ -218,11 +218,11 @@ static bool HandleProtocolPacket(bool specialPacket)
   if ((Packet_Parameter1 = 2 && Packet_Parameter2 >= 0 && Packet_Parameter2 <= 1 && Packet_Parameter3 == 0) || specialPacket == TRUE)
   {
     if(specialPacket == FALSE && Packet_Parameter2 == 0)
-      synchronous = FALSE;
+      Synchronous = FALSE;
     else if (specialPacket == FALSE)
-      synchronous = TRUE;
+      Synchronous = TRUE;
 
-    Packet_Put(PACKET_PROTOCOL_MODE, 0x01, (uint8_t)synchronous, 0x00);
+    Packet_Put(PACKET_PROTOCOL_MODE, 0x01, (uint8_t)Synchronous, 0x00);
     return TRUE;
   }
 
@@ -258,17 +258,25 @@ static bool HandleSpecialPacket(bool startUp)
  return FALSE;
 }
 
+/*! @brief Handles the "status" request packet for AWG
+ *
+ *  @param None.
+ *  @return bool - TRUE if the status was sent ot the PC
+ */
 static bool HandleStatus(void)
 {
   if ((Packet_Parameter2 == 0 || Packet_Parameter2 == 1) && (Packet_Parameter3 == 0 || Packet_Parameter3 == 1))
   {
-    AWG_DAC_Channels[Packet_Parameter2].active = (bool) Packet_Parameter3;
-    return TRUE;
+    return Packet_Put(0x00, 0x00, Packet_Parameter2, AWG_DAC_Channels[Packet_Parameter2].active);
   }
-
   return FALSE;
 }
 
+/*! @brief Handles the "waveform" request packet for AWG
+ *
+ *  @param None.
+ *  @return bool - TRUE if the waveform was updated
+ */
 static bool HandleWaveForm(void)
 {
   if ((Packet_Parameter2 >=0 && Packet_Parameter2 <= 5) && Packet_Parameter3 == 0)
@@ -287,6 +295,11 @@ static bool HandleWaveForm(void)
   return FALSE;
 }
 
+/*! @brief Handles the "frequency" request packet for AWG
+ *
+ *  @param None.
+ *  @return bool - TRUE if the frequency was updated
+ */
 static bool HandleFrequency(void)
 {
   uint16union_t frequency;
@@ -300,8 +313,8 @@ static bool HandleFrequency(void)
     }
     else
     {
-	AWG_UpdateFrequency(0, frequency.l);
-	return TRUE;
+      AWG_UpdateFrequency(0, frequency.l);
+      return TRUE;
     }
   }
   else
@@ -320,6 +333,11 @@ static bool HandleFrequency(void)
   }
 }
 
+/*! @brief Handles the "amplitude" request packet for AWG
+ *
+ *  @param None.
+ *  @return bool - TRUE if the amplitude was updated
+ */
 static bool HandleAmplitude(void)
 {
   uint16union_t amplitude;
@@ -351,6 +369,11 @@ static bool HandleAmplitude(void)
   }
 }
 
+/*! @brief Handles the "offset" request packet for AWG
+ *
+ *  @param None.
+ *  @return bool - TRUE if the offset was updated
+ */
 static bool HandleOffset(void)
 {
   int16union_t offset;
@@ -380,9 +403,13 @@ static bool HandleOffset(void)
       return TRUE;
     }
   }
-
 }
 
+/*! @brief Handles the "turn on all waveforms" request packet for AWG
+ *
+ *  @param None.
+ *  @return bool - TRUE if the all the waveform was turned on
+ */
 static bool HandleAllWaveFormsOn(void)
 {
   if (Packet_Parameter2 == 0 && Packet_Parameter3 == 0)
@@ -394,6 +421,11 @@ static bool HandleAllWaveFormsOn(void)
   return FALSE;
 }
 
+/*! @brief Handles the "turn off all waveforms" request packet for AWG
+ *
+ *  @param None.
+ *  @return bool - TRUE if the all the waveform was turned off
+ */
 static bool HandleAllWaveFormsOff(void)
 {
   if (Packet_Parameter2 == 0 && Packet_Parameter3 == 0)
@@ -405,6 +437,11 @@ static bool HandleAllWaveFormsOff(void)
   return FALSE;
 }
 
+/*! @brief Handles the "select active channel" request packet for AWG
+ *
+ *  @param None.
+ *  @return bool - TRUE if the channel was selected for active edit
+ */
 static bool HandleSetActiveChannel(void)
 {
   if ((Packet_Parameter2 == 0 || Packet_Parameter2 == 1) && Packet_Parameter3 == 0)
@@ -415,6 +452,11 @@ static bool HandleSetActiveChannel(void)
   return FALSE;
 }
 
+/*! @brief Handles the "arbitrary download" request packet for AWG
+ *
+ *  @param None.
+ *  @return bool - TRUE if sample read it was stored in ram
+ */
 static bool HandleArbPacket(void)
 {
   static uint16_t channel;
@@ -424,7 +466,7 @@ static bool HandleArbPacket(void)
     sample.s.Lo = Packet_Parameter2;
     sample.s.Hi = Packet_Parameter3;
     channel = Packet_Parameter1;
-    AWG_ResetAbitraryWave(channel);
+    AWG_ResetAbitraryWaveSize(channel);
     return AWG_UploadAbitraryWave(sample.l, channel);
   }
 
@@ -435,7 +477,7 @@ static bool HandleArbPacket(void)
     return AWG_UploadAbitraryWave(sample.l, channel);
   }
 
-  if(Packet_Parameter1 == 255)
+  if (Packet_Parameter1 == 255)
   {
     sample.s.Lo = Packet_Parameter2;
     sample.s.Hi = Packet_Parameter3;
@@ -443,6 +485,11 @@ static bool HandleArbPacket(void)
   }
 }
 
+/*! @brief Handles the "AWG" packets and calls the correct function to handle the request
+ *
+ *  @param None.
+ *  @return bool - TRUE if the function called was successful
+ */
 static bool HandleAWGPacket(void)
 {
   switch (Packet_Parameter1)
@@ -582,6 +629,16 @@ static void PITCallback(void* arg)
   else
     Analog_Put(0, DACChanelZeroSample);
 
+  static uint16_t ledToggleCount = 0;
+  ledToggleCount++;
+  if (ledToggleCount == 1000)
+  {
+    LEDs_Toggle(LED_GREEN);
+    ledToggleCount = 0;
+  }
+
+
+
 }
 
 
@@ -595,7 +652,6 @@ static void RTCCallback (void* arg)
   RTC_Get(&Hours, &Minutes, &Seconds);
   Packet_Put(0x0C, Hours, Minutes, Seconds);
   LEDs_Toggle(LED_YELLOW);
-
 }
 
 /*! @brief Call back functions for the FTM) channel 0 ISR
@@ -606,7 +662,6 @@ static void RTCCallback (void* arg)
 static void FTM0CH0Callback(void* arg)
 {
   LEDs_Off(LED_BLUE);
-
 }
 
 /*! @brief builds the TFTMChannel struct for channel 0
@@ -641,15 +696,15 @@ static void DACChannelZeroThread(void* arg)
 static void DACChannelOneThread(void* arg)
 {
   for (;;)
+  {
+    (void)OS_SemaphoreWait(DACChannelOne, 0);
+
+    if (AWG_DAC_Channels[1].active) //check to see if channel is active
     {
-      (void)OS_SemaphoreWait(DACChannelOne, 0);
-
-      if (AWG_DAC_Channels[1].active) //check to see if channel is active
-      {
-	  DACChanelOneSample = AWG_SampleGet(1);
-      }
-
+      DACChanelOneSample = AWG_SampleGet(1);
     }
+
+  }
 }
 
 /*static void PITThread(void* arg)

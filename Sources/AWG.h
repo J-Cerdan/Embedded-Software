@@ -21,11 +21,11 @@
 #include "types.h"
 
 // Maximum number of channels
-#define AWG_NB_CHANNELS 2
-#define AWG_MAX_FREQUENCY 25600
-#define AWG_MAX_AMPLITUDE 32767
-#define AWG_MIN_OFFSET -32767
-#define ARB_WAVE_SIZE 1000
+#define AWG_NB_CHANNELS 2  		//number of channels being managed
+#define AWG_MAX_FREQUENCY 25600		//max frequency that can be processed
+#define AWG_MAX_AMPLITUDE 32767		//max amplitude that can be displayed
+#define AWG_MIN_OFFSET -32767		//minimum offset that can be displayed
+#define ARB_WAVE_SIZE 1000		//max number of samples that can be stored for an arbitrary waveform
 
 typedef enum
 {
@@ -65,19 +65,50 @@ bool AWG_Init(void);
  */
 uint16_t AWG_SampleGet(uint8_t channelNb);
 
-
+/*! @brief updates the frequency value for a particular channel.
+ *
+ *  @param channelNb is the channel who's frequency is to be changed.
+ *  @param frequency is the frequency value.
+ *  @return bool - true if the channel frequency is changed.
+ */
 bool AWG_UpdateFrequency(uint8_t channelNb, uint16_t frequency);
 
-
+/*! @brief updates the amplitude value for a particular channel.
+ *
+ *  @param channelNb is the channel who's amplitude is to be changed.
+ *  @param amplitude is the frequency value.
+ *  @return bool - true if the channel amplitude is changed.
+ */
 bool AWG_UpdateAmplitude(uint8_t channelNb, uint16_t amplitude);
 
+/*! @brief updates the offset value for a particular channel.
+ *
+ *  @param channelNb is the channel who's offset is to be changed.
+ *  @param amplitude is the offset value.
+ *  @return bool - true if the channel offset is changed.
+ */
 bool AWG_UpdateOffset(uint8_t channelNb, uint16_t offset);
 
+/*! @brief updates the amount the index will be jumping for an arbitrary waveform.
+ *
+ *  @param channelNb is the channel who's amplitude is to be changed.
+ *  @return bool - true if the channel index adder is changed.
+ */
 bool AWG_UpdateArbitraryIndexAdder(uint8_t channelNb);
 
+/*! @brief used to upload the arbitrary waveform samples into ram for any channel.
+ *
+ *  @param sample is the values to be stored into ram.
+ *  @param channelNb is the channel the arbitrary waveform is being uploaded for.
+ *  @return bool - true if sample was stored into ram.
+ */
 bool AWG_UploadAbitraryWave(int16_t sample, uint8_t channelNb);
 
-void AWG_ResetAbitraryWave(uint8_t channelNb);
+/*! @brief used to reset the size of an arbitrary waveform array to size to read in new wave
+ *
+ *  @param channelNb is the channel who's index is being reset.
+ */
+void AWG_ResetAbitraryWaveSize(uint8_t channelNb);
 
 #endif
 

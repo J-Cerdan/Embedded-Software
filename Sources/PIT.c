@@ -118,7 +118,7 @@ void __attribute__ ((interrupt)) PIT_ISR(void)
   //Write 1 to clear interrupt flag
   PIT_TFLG0 |= PIT_TFLG_TIF_MASK;
 
-  CallBackArgument = &channelZero;
+  CallBackArgument = &channelZero; //used to switch between channels for both siganlling and sending data
   if (CallBack)
    (*CallBack) (CallBackArgument); //calls the user call back function
 
@@ -130,8 +130,8 @@ void __attribute__ ((interrupt)) PIT_ISR(void)
   }
   else
   {
-      (void)OS_SemaphoreSignal(DACChannelOne);
-      channelZero = TRUE;
+    (void)OS_SemaphoreSignal(DACChannelOne); //signal semaphore
+    channelZero = TRUE;
   }
 
   OS_ISRExit();
