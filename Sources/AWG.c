@@ -29,8 +29,8 @@ bool AWG_Init(void)
   {
     DACChannel[i].active = FALSE;
     DACChannel[i].waveform = WAVEFORMS_SINEWAVE;
-    DACChannel[i].frequency = 10;
-    DACChannel[i].amplitude = 10;
+    DACChannel[i].frequency = 0;
+    DACChannel[i].amplitude = 0;
     DACChannel[i].offset = 0;
     DACChannel[i].index = 0;
     DACChannel[i].arbitrarymaxindex = 0;
@@ -110,7 +110,7 @@ void Arbitrary_AddValues(uint8_t channelNb, int16_t value)
  *  @return void
  *
  */
-static uint16_t amplitudeConversion(uint16_t value)
+static uint16_t AmplitudeConversion(uint16_t value)
 {
   uint16_t convertedValue;
 
@@ -136,7 +136,7 @@ static uint16_t amplitudeConversion(uint16_t value)
  *  @return returns the frequency in correct form
  *
  */
-static uint16_t frequencyConversion(uint16_t frequency)
+static uint16_t FrequencyConversion(uint16_t frequency)
 {
   uint16_t convertedFrequency;
 
@@ -173,7 +173,7 @@ bool Set_Frequency(uint8_t LSB, uint8_t MSB)
   recievedFrequency.s.Lo = LSB;
   recievedFrequency.s.Hi = MSB;
 
-  DACChannel[EditChannel].frequency = frequencyConversion(recievedFrequency.l);
+  DACChannel[EditChannel].frequency = FrequencyConversion(recievedFrequency.l);
 
   return TRUE;
 }
@@ -184,7 +184,7 @@ bool Set_Amplitude(uint8_t LSB, uint8_t MSB)
   recievedAmplitude.s.Lo = LSB;
   recievedAmplitude.s.Hi = MSB;
 
-  DACChannel[EditChannel].amplitude = amplitudeConversion(recievedAmplitude.l);
+  DACChannel[EditChannel].amplitude = AmplitudeConversion(recievedAmplitude.l);
 
   return TRUE;
 }
