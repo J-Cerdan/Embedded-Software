@@ -3,7 +3,7 @@
  *  @brief Routines for setting up functions.
  *
  *  This contains the functions for reading files from a look up table, and manipulating the values bases on the frequency, amplitude, offset, and wave form.
- *  This also contains the struct used to manage each of the two Digital to Anlog convert channels to maintain the values mentions above.
+ *  This also contains the struct used to manage each of the two Digital to Anlog converter channels to maintain the values mentions above.
  *  THis also contains functions to store and manage the arbitrary waves sent from a pc.
  *
  *  @author Amir Hussein

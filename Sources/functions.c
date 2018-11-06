@@ -1,3 +1,16 @@
+/*! @file
+ *
+ *  @brief look up tables for various functions.
+ *
+ *  This contains the look up tables for values to store values for sine, sawtooth, triangle, and square waves. These values are stored in flash as they are const.
+ *
+ *  @author Amir Hussein
+ *  @date 2018-11-4
+ */
+/*!
+**  @addtogroup functions_module functions module documentation
+**  @{
+*/
 #include "functions.h"
 
 const uint16_t FUNCTIONS_SINEWAVE[MAX_WAVE_SIZE] =
@@ -1816,4 +1829,8 @@ const uint16_t FUNCTIONS_SAWTOOTHWAVE[MAX_WAVE_SIZE] =
     0xFEFF,     0xFF05,     0xFF0C,     0xFF13,     0xFF19,     0xFF20,     0xFF26,     0xFF2D,     0xFF33,     0xFF3A,     0xFF40,     0xFF47,     0xFF4E,     0xFF54,     0xFF5B,     0xFF61,     0xFF68,     0xFF6E,     0xFF75,     0xFF7B,
     0xFF82,     0xFF89,     0xFF8F,     0xFF96,     0xFF9C,     0xFFA3,     0xFFA9,     0xFFB0,     0xFFB6,     0xFFBD,     0xFFC4,     0xFFCA,     0xFFD1,     0xFFD7,     0xFFDE,     0xFFE4,     0xFFEB,     0xFFF1,     0xFFF8,     0xFFFF,
 };
+
+/*!
+** @}
+*/
 

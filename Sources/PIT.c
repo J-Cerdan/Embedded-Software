@@ -88,10 +88,10 @@ void PIT_Set(const uint32_t period, const bool restart)
 
   // If restart is true, disable then enable timer to restart
   if (restart)
-    {
-      PIT_TCTRL0 &= ~PIT_TCTRL_TEN_MASK;
-      PIT_TCTRL0 |= PIT_TCTRL_TEN_MASK;
-    }
+  {
+    PIT_TCTRL0 &= ~PIT_TCTRL_TEN_MASK;
+    PIT_TCTRL0 |= PIT_TCTRL_TEN_MASK;
+  }
 
   //OS_EnableInterrupts();
 

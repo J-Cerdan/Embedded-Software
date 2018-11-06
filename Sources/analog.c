@@ -61,18 +61,18 @@ bool Analog_Init(const uint32_t moduleClock)
 
   //set the Analog_Input elements to 0;
   for (uint8_t i = 0; i < ANALOG_NB_INPUTS; i++)
+  {
+    Analog_Input[i].value.l = 0;
+    Analog_Input[i].oldValue.l = 0;
+
+    for (uint8_t j = 0; j < ANALOG_WINDOW_SIZE; j++)
     {
-      Analog_Input[i].value.l = 0;
-      Analog_Input[i].oldValue.l = 0;
-
-      for (uint8_t j = 0; j < ANALOG_WINDOW_SIZE; j++)
-      	{
-      	  Analog_Input[i].values[j] = 0;
-      	}
-
-      Analog_Input[i].putPtr = &Analog_Input[i].values[0];
-
+      Analog_Input[i].values[j] = 0;
     }
+
+    Analog_Input[i].putPtr = &Analog_Input[i].values[0];
+
+  }
 
   //build the TSPIModule struct to send to the SPI_init
   TSPIModule SPIValues;

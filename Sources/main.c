@@ -715,14 +715,11 @@ static void PITCallback(void* arg)
 
   static uint16_t ledToggleCount = 0;
   ledToggleCount++;
-  if (ledToggleCount == 1000)
+  if (ledToggleCount == 1000) //used to toggle the green light every 0.5 seconds
   {
     LEDs_Toggle(LED_GREEN);
     ledToggleCount = 0;
   }
-
-
-
 }
 
 
@@ -764,6 +761,11 @@ static void CH01SecondTimerInit(void)
   FTM_Set(&Ch0);
 }
 
+/*! @brief Thread for the DAC channel zero. It will prepare a sample for the PIT ISR to send
+ *
+ *  @param arg not used
+ *  @return void
+ */
 static void DACChannelZeroThread(void* arg)
 {
   for (;;)
@@ -777,6 +779,11 @@ static void DACChannelZeroThread(void* arg)
   }
 }
 
+/*! @brief Thread for the DAC channel one. It will prepare a sample for the PIT ISR to send
+ *
+ *  @param arg not used
+ *  @return void
+ */
 static void DACChannelOneThread(void* arg)
 {
   for (;;)
