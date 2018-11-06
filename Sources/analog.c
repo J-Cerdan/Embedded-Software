@@ -139,10 +139,10 @@ bool Analog_Get(const uint8_t channelNb)
 
 bool Analog_Put(const uint8_t channelNb, const uint16_t data)
 {
-  PMcL_SPI_Adv_SelectSlaveDevice(4);
-  if (channelNb == 0 || channelNb == 1)
+  PMcL_SPI_Adv_SelectSlaveDevice(4); //select the slave
+  if (channelNb == 0 || channelNb == 1) //make sure a valid channel is chosen
   {
-    PMcL_SPI_Adv_Exchange(DAC_Command[channelNb], NULL, DAC_CTAS, TRUE);
+    PMcL_SPI_Adv_Exchange(DAC_Command[channelNb], NULL, DAC_CTAS, TRUE); //send data to the dac
     PMcL_SPI_Adv_Exchange(data, NULL, DAC_CTAS, FALSE);
     return TRUE;
   }
